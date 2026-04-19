@@ -1,0 +1,29 @@
+[
+  {
+    "id": "bkg-001",
+    "userId": "usr-001",
+    "eventId": "evt-001",
+    "quantity": 2,
+    "totalAmount": 19800,
+    "status": "confirmed",
+    "placedAt": "2026-04-20T14:30:00Z"
+  },
+  {
+    "id": "bkg-002",
+    "userId": "usr-001",
+    "eventId": "evt-004",
+    "quantity": 1,
+    "totalAmount": 3500,
+    "status": "confirmed",
+    "placedAt": "2026-04-21T09:15:00Z"
+  },
+  {
+    "id": "bkg-003",
+    "userId": "usr-001",
+    "eventId": "evt-002",
+    "quantity": 1,
+    "totalAmount": 4500,
+    "status": "cancelled",
+    "placedAt": "2026-04-19T11:00:00Z"
+  }
+]

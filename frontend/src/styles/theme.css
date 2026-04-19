@@ -1,0 +1,66 @@
+:root {
+  /* Brand */
+  --primary: #0F1B3D;
+  --primary-light: #1A2D60;
+  --accent: #FF5A1F;
+  --accent-hover: #E04A10;
+
+  /* Backgrounds */
+  --bg: #FFFFFF;
+  --bg-alt: #F4F6F9;
+  --bg-dark: #0F1B3D;
+
+  /* Text */
+  --text: #111827;
+  --text-muted: #6B7280;
+  --text-light: #FFFFFF;
+
+  /* Borders */
+  --border: #E5E7EB;
+  --border-focus: #FF5A1F;
+
+  /* Status */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+
+  /* Typography */
+  --font: 'Poppins', system-ui, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+  --font-size-4xl: 2.5rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Layout */
+  --max-width: 1200px;
+  --nav-height: 72px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+
+  /* Transition */
+  --transition: 200ms ease;
+}

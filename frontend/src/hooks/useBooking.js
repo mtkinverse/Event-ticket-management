@@ -1,0 +1,58 @@
+import { useState, useEffect } from 'react';
+import { bookingsApi } from '../services/api/bookings.js';
+import { useAuth } from './useAuth.js';
+
+export const useMyBookings = () => {
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    bookingsApi.getMyBookings(user.id)
+      .then(setBookings)
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [user]);
+
+  return { bookings, loading, error };
+};
+
+export const useBookEvent = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+
+  const book = async ({ eventId, quantity }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await bookingsApi.create({ userId: user.id, eventId, quantity });
+      setResult(data);
+      return data;
+    } catch (e) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const joinWaitlist = async (eventId) => {
+    setLoading(true);
+    try {
+      const data = await bookingsApi.joinWaitlist({ userId: user.id, eventId });
+      setResult(data);
+      return data;
+    } catch (e) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { book, joinWaitlist, loading, error, result };
+};
