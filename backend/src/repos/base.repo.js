@@ -3,10 +3,12 @@ export const createBaseRepo = (modelOrGetter) => {
   const getModel = typeof modelOrGetter === 'function' ? modelOrGetter : () => modelOrGetter;
 
   const findAll = (where = {}, opts = {}) =>
-    getModel().findAll({ where, raw: true, ...opts });
+    getModel().findAll({ where, ...opts })
+      .then(rows => rows.map(r => r.get({ plain: true })));
 
   const findOne = (where, opts = {}) =>
-    getModel().findOne({ where, raw: true, ...opts }).then(r => r ?? null);
+    getModel().findOne({ where, ...opts })
+      .then(r => r ? r.get({ plain: true }) : null);
 
   const findById = (id, opts = {}) => findOne({ id }, opts);
 

@@ -1,7 +1,7 @@
 import { authService } from '../services/auth.service.js';
 import { config } from '../configs/index.js';
 
-const shapeUser = ({ passwordHash, createdAt, updatedAt, ...user }) => user;
+const shapeUser = ({ passwordHash, updatedAt, ...user }) => user;
 
 export const authHandler = {
   async register(req, reply) {
