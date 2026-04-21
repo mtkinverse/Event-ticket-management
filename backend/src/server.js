@@ -1,5 +1,8 @@
 import { buildApp } from './app.js';
 import { config } from './configs/index.js';
+import { initModels } from './models/index.js';
+
+await initModels();
 
 const app = await buildApp();
 

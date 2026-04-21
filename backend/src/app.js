@@ -2,17 +2,25 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { config } from './configs/index.js';
+import { requestLogger } from './hooks/requestLogger.js';
+import { authRoutes } from './routes/auth.routes.js';
+import { AppError } from './utils/errors.js';
 
 export async function buildApp() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({ logger: config.nodeEnv !== 'test' });
 
   await app.register(cors, { origin: config.appUrl, credentials: true });
   await app.register(jwt, { secret: config.jwtSecret });
 
-  // hooks/, routes/ are registered here in later phases.
-  // Example:
-  //   app.addHook('onRequest', authenticate);
-  //   await app.register(eventRoutes, { prefix: '/events' });
+  app.addHook('onRequest', requestLogger);
+
+  app.setErrorHandler((err, _req, reply) => {
+    const status = err instanceof AppError ? err.statusCode : (err.statusCode ?? 500);
+    const message = err instanceof AppError ? err.message : (status < 500 ? err.message : 'Internal Server Error');
+    reply.code(status).send({ error: message });
+  });
+
+  await app.register(authRoutes, { prefix: '/auth' });
 
   app.get('/health', async () => ({ status: 'ok' }));
 
