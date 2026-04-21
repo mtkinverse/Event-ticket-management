@@ -13,6 +13,7 @@ import EventDetails from './pages/EventDetails.jsx';
 import EventCreation from './pages/EventCreation.jsx';
 import TicketBooking from './pages/TicketBooking.jsx';
 import MainDashboard from './pages/MainDashboard.jsx';
+import Profile from './pages/Profile.jsx';
 import OrganizerDashboard from './pages/OrganizerDashboard.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminApproval from './pages/AdminApproval.jsx';
@@ -45,6 +46,7 @@ export default function App() {
               {/* Auth required */}
               <Route element={<AuthGuard />}>
                 <Route path="/dashboard" element={<MainDashboard />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route path="/events/:id/book" element={<TicketBooking />} />
 
                 {/* Organizer only */}

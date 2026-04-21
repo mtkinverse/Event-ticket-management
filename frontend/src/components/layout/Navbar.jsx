@@ -29,7 +29,7 @@ export function Navbar() {
         <div className="navbar__actions">
           {user ? (
             <>
-              <span className="navbar__link" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}>{user.initials}</span>
+              <NavLink to="/profile" className={({ isActive }) => `navbar__link${isActive ? ' navbar__link--active' : ''}`} style={{ fontSize: '0.8rem' }}>{user.initials}</NavLink>
               {role === 'organizer' && <Link to="/events/new" className="btn btn--primary btn--sm">+ New Event</Link>}
               <button className="btn btn--ghost btn--sm" style={{ color: 'rgba(255,255,255,0.8)', borderColor: 'rgba(255,255,255,0.2)' }} onClick={handleLogout}>Logout</button>
             </>
