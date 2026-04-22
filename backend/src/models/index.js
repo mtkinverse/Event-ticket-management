@@ -1,13 +1,28 @@
-import { sequelize } from '../db/index.js';
-import { defineUser } from './user.model.js';
+import { sequelize }          from '../db/index.js';
+import { defineUser }          from './user.model.js';
+import { defineEvent }         from './event.model.js';
+import { defineApplicationFee } from './application_fee.model.js';
+
+const ASSOCIATIONS = [
+  { base: 'User',           ref: 'Event',          assoc: 'hasMany',   fk: 'organizerId', as: 'events'        },
+  { base: 'Event',          ref: 'User',           assoc: 'belongsTo', fk: 'organizerId', as: 'organizer'      },
+  { base: 'Event',          ref: 'ApplicationFee', assoc: 'hasOne',    fk: 'eventId',     as: 'applicationFee' },
+  { base: 'ApplicationFee', ref: 'Event',          assoc: 'belongsTo', fk: 'eventId',     as: 'event'          },
+  { base: 'ApplicationFee', ref: 'User',           assoc: 'belongsTo', fk: 'organizerId', as: 'organizer'      },
+];
 
 function loadModels(seq) {
-  const User = defineUser(seq);
+  const models = {
+    User:           defineUser(seq),
+    Event:          defineEvent(seq),
+    ApplicationFee: defineApplicationFee(seq),
+  };
 
-  // Associations declared here as models are added in later phases.
-  // e.g. User.hasMany(Event, { foreignKey: 'organizerId', as: 'events' });
+  ASSOCIATIONS.forEach(({ base, ref, assoc, fk, as }) =>
+    models[base][assoc](models[ref], { foreignKey: fk, as })
+  );
 
-  return { User };
+  return models;
 }
 
 export async function initModels() {

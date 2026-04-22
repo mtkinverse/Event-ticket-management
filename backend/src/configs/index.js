@@ -15,6 +15,7 @@ export const config = {
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
   },
 
+  paymentGateway: process.env.PAYMENT_GATEWAY || 'mock',
   applicationFeeAmount: Number(process.env.APPLICATION_FEE_AMOUNT) || 2500,
   waitlistHoldMinutes: Number(process.env.WAITLIST_HOLD_MINUTES) || 15,
 
