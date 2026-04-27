@@ -1,7 +1,7 @@
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-const fmtPrice = (cents) =>
-  cents === 0 ? 'Free' : `$${(cents / 100).toFixed(2)}`;
+const fmtPrice = (dollars) =>
+  dollars === 0 ? 'Free' : `$${Number(dollars).toFixed(2)}`;
 
 const fmtDate = (iso) => {
   const d = new Date(iso);
@@ -22,7 +22,7 @@ export const mapEvent = (raw) => ({
   remaining: raw.remaining,
   isSoldOut: raw.remaining === 0,
   isAlmostFull: raw.remaining > 0 && raw.remaining <= 10,
-  price: raw.ticketPrice / 100,
+  price: raw.ticketPrice,
   priceFormatted: fmtPrice(raw.ticketPrice),
   imageUrl: raw.imageUrl,
   status: raw.status,
