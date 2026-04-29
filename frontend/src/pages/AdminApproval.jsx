@@ -13,15 +13,29 @@ export default function AdminApproval() {
   const [acting, setActing] = useState(null);
 
   const handle = (id, action) => async () => {
+    if (action === 'reject') {
+      const reason = window.prompt('Reason for rejection? (required, min 5 characters)');
+      if (reason === null) return;
+      if (reason.trim().length < 5) {
+        notify.error('Rejection reason must be at least 5 characters.');
+        return;
+      }
+      setActing(id + action);
+      try {
+        await eventsApi.reject(id, reason.trim());
+        notify.info('Event rejected. The organizer will be notified.');
+        await reload();
+      } catch (e) {
+        notify.error(e.message);
+      } finally {
+        setActing(null);
+      }
+      return;
+    }
     setActing(id + action);
     try {
-      if (action === 'approve') {
-        await eventsApi.approve(id);
-        notify.success('Event approved and is now live.');
-      } else {
-        await eventsApi.reject(id);
-        notify.info('Event rejected. The organizer will be notified.');
-      }
+      await eventsApi.approve(id);
+      notify.success('Event approved and is now live.');
       await reload();
     } catch (e) {
       notify.error(e.message);

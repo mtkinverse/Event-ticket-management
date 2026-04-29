@@ -26,6 +26,7 @@ export const mapEvent = (raw) => ({
   priceFormatted: fmtPrice(raw.ticketPrice),
   imageUrl: raw.imageUrl,
   status: raw.status,
+  rejectionReason: raw.rejectionReason ?? null,
   refundDeadline: raw.refundDeadline,
   registrationOpen: raw.registrationOpen,
   createdAt: raw.createdAt,
