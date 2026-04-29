@@ -3,10 +3,12 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { config } from './configs/index.js';
 import { requestLogger } from './hooks/requestLogger.js';
-import { authRoutes }  from './routes/auth.routes.js';
-import { eventRoutes } from './routes/event.routes.js';
-import { adminRoutes } from './routes/admin.routes.js';
-import { AppError }    from './utils/errors.js';
+import { authRoutes }     from './routes/auth.routes.js';
+import { eventRoutes }    from './routes/event.routes.js';
+import { adminRoutes }    from './routes/admin.routes.js';
+import { bookingRoutes }  from './routes/booking.routes.js';
+import { waitlistRoutes } from './routes/waitlist.routes.js';
+import { AppError }       from './utils/errors.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: config.nodeEnv !== 'test' });
@@ -22,9 +24,11 @@ export async function buildApp() {
     reply.code(status).send({ error: message });
   });
 
-  await app.register(authRoutes,  { prefix: '/auth' });
-  await app.register(eventRoutes, { prefix: '/events' });
-  await app.register(adminRoutes, { prefix: '/admin' });
+  await app.register(authRoutes,     { prefix: '/auth' });
+  await app.register(eventRoutes,    { prefix: '/events' });
+  await app.register(adminRoutes,    { prefix: '/admin' });
+  await app.register(bookingRoutes,  { prefix: '/bookings' });
+  await app.register(waitlistRoutes, { prefix: '/waitlist' });
 
   app.get('/health', async () => ({ status: 'ok' }));
 
