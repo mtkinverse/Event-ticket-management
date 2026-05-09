@@ -3,7 +3,7 @@ export const createBookingBody = {
   required: ['eventId', 'quantity'],
   properties: {
     eventId:  { type: 'string', format: 'uuid' },
-    quantity: { type: 'integer', minimum: 1, maximum: 10 },
+    quantity: { type: 'integer', minimum: 1 },
   },
   additionalProperties: false,
 };
