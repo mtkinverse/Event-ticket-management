@@ -40,6 +40,9 @@ export const bookingService = {
       if (booking.status === 'cancelled') throw new AppError('Booking already cancelled', 422);
 
       const event = await eventRepo.findById(booking.eventId, { transaction: t, lock: t.LOCK.UPDATE });
+      if (event?.refundDeadline && new Date() > new Date(event.refundDeadline)) {
+        throw new AppError('Refund deadline has passed', 422);
+      }
       if (event) {
         await eventRepo.updateById(event.id, { remaining: event.remaining + booking.quantity }, { transaction: t });
       }

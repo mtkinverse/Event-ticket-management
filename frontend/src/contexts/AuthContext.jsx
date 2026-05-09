@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
     if (!token) { setLoading(false); return; }
     authApi.me(token)
       .then(setUser)
-      .catch(() => localStorage.removeItem('token'))
+      .catch(() => { localStorage.removeItem('token'); setUser(null); })
       .finally(() => setLoading(false));
   }, []);
 

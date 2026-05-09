@@ -24,7 +24,7 @@ export function EventCard({ event }) {
         <div className="event-card__footer">
           <span className="event-card__price">{priceFormatted}</span>
           {isSoldOut
-            ? <span className="badge badge--cancelled">Sold Out</span>
+            ? <Link to={`/events/${id}`} className="btn btn--outline btn--sm">Join Waitlist</Link>
             : isAlmostFull
               ? <Link to={`/events/${id}`} className="btn btn--primary btn--sm">Almost Full!</Link>
               : <Link to={`/events/${id}`} className="btn btn--primary btn--sm">Book Now</Link>

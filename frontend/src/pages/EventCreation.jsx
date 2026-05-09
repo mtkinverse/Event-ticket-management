@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { eventsApi } from '../services/api/events.js';
-import { useAuth } from '../hooks/useAuth.js';
 import { useNotify } from '../contexts/NotificationContext.jsx';
 import { Button } from '../components/common/Button.jsx';
 
@@ -10,7 +9,6 @@ const CATEGORIES = ['Technology', 'Music', 'Business', 'Design', 'Health', 'Arts
 const INIT = { title: '', description: '', category: '', location: '', startsAt: '', endsAt: '', capacity: '', ticketPrice: '', imageUrl: '', refundDeadline: '' };
 
 export default function EventCreation() {
-  const { user } = useAuth();
   const notify = useNotify();
   const navigate = useNavigate();
   const [form, setForm] = useState(INIT);
@@ -24,9 +22,8 @@ export default function EventCreation() {
     try {
       const data = {
         ...form,
-        organizerId: user.id,
         capacity: Number(form.capacity),
-        ticketPrice: Math.round(Number(form.ticketPrice) * 100),
+        ticketPrice: Number(form.ticketPrice),
       };
       const event = await eventsApi.create(data);
       notify.success('Event submitted for review! We\'ll notify you once approved.');

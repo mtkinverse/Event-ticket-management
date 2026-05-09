@@ -11,6 +11,7 @@ export const waitlistService = {
     const event = await eventRepo.findById(eventId);
     if (!event) throw new AppError('Event not found', 404);
     if (event.status !== 'active') throw new AppError('Event is not open', 422);
+    if (event.remaining > 0) throw new AppError('Seats are still available — book directly instead', 422);
 
     const existing = await waitlistEntryRepo.findByUserAndEvent(user.id, eventId);
     if (existing && existing.status !== 'expired') {

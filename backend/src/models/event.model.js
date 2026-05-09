@@ -12,7 +12,7 @@ export const defineEvent = (sequelize) => sequelize.define('Event', {
   capacity:         { type: DataTypes.INTEGER, allowNull: false },
   remaining:        { type: DataTypes.INTEGER, allowNull: false },
   ticketPrice:      { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-  imageUrl:         { type: DataTypes.STRING, allowNull: true },
+  imageUrl:         { type: DataTypes.TEXT, allowNull: true },
   status:           { type: DataTypes.ENUM('pending', 'active', 'cancelled', 'completed'), allowNull: false, defaultValue: 'pending' },
   refundDeadline:   { type: DataTypes.DATE, allowNull: true },
   rejectionReason:  { type: DataTypes.TEXT, allowNull: true },
