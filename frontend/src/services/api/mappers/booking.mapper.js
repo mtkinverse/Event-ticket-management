@@ -1,11 +1,12 @@
-const fmtPrice = (cents) => `$${(cents / 100).toFixed(2)}`;
+const fmtPrice = (dollars) => `$${Number(dollars).toFixed(2)}`;
 
 export const mapBooking = (raw) => ({
   id: raw.id,
   userId: raw.userId,
   eventId: raw.eventId,
   quantity: raw.quantity,
-  total: raw.totalAmount / 100,
+  tickets: raw.tickets ?? [],
+  total: raw.totalAmount,
   totalFormatted: fmtPrice(raw.totalAmount),
   status: raw.status,
   placedAt: raw.placedAt,

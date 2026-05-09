@@ -1,65 +1,56 @@
-import mockEvents from '../../mocks/events.mock.json';
+import { req } from './http.js';
 import { mapEvent, mapEventList } from './mappers/event.mapper.js';
 
-const delay = (ms = 250) => new Promise(r => setTimeout(r, ms));
-
-const applyFilters = (list, { category, search, status = 'active' }) => {
-  let data = list.filter(e => e.status === status || status === 'all');
-  if (category && category !== 'all') data = data.filter(e => e.category === category);
-  if (search) data = data.filter(e => e.title.toLowerCase().includes(search.toLowerCase()));
-  return data;
+const qs = (params) => {
+  const s = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => v && v !== 'all' && s.append(k, v));
+  const str = s.toString();
+  return str ? `?${str}` : '';
 };
 
 export const eventsApi = {
   getAll: async (filters = {}) => {
-    await delay();
-    return mapEventList(applyFilters(mockEvents, filters));
+    const { events } = await req(`/events${qs(filters)}`);
+    return mapEventList(events);
   },
 
   getFeatured: async () => {
-    await delay();
-    return mapEventList(mockEvents.filter(e => e.status === 'active').slice(0, 4));
+    const { events } = await req('/events/top');
+    return mapEventList(events);
   },
 
   getById: async (id) => {
-    await delay();
-    const event = mockEvents.find(e => e.id === id);
-    if (!event) throw new Error('Event not found');
+    const { event } = await req(`/events/${id}`);
     return mapEvent(event);
   },
 
   getRelated: async (id) => {
-    await delay();
-    const event = mockEvents.find(e => e.id === id);
-    const related = mockEvents.filter(e => e.id !== id && e.category === event?.category && e.status === 'active').slice(0, 3);
-    return mapEventList(related);
+    const { events } = await req(`/events/${id}/related`);
+    return mapEventList(events);
   },
 
-  getByOrganizer: async (organizerId) => {
-    await delay();
-    return mapEventList(mockEvents.filter(e => e.organizerId === organizerId));
+  getByOrganizer: async () => {
+    const { events } = await req('/events/mine');
+    return mapEventList(events);
   },
 
   getPending: async () => {
-    await delay();
-    return mapEventList(mockEvents.filter(e => e.status === 'pending'));
+    const { events } = await req('/admin/events');
+    return mapEventList(events);
   },
 
   create: async (data) => {
-    await delay(400);
-    const newEvent = { id: `evt-${Date.now()}`, ...data, status: 'pending', remaining: data.capacity, createdAt: new Date().toISOString() };
-    return mapEvent(newEvent);
+    const { event } = await req('/events', { method: 'POST', body: JSON.stringify(data) });
+    return mapEvent(event);
   },
 
   approve: async (id) => {
-    await delay();
-    const event = mockEvents.find(e => e.id === id);
-    return mapEvent({ ...event, status: 'active' });
+    const { event } = await req(`/admin/events/${id}/approve`, { method: 'POST' });
+    return mapEvent(event);
   },
 
-  reject: async (id) => {
-    await delay();
-    const event = mockEvents.find(e => e.id === id);
-    return mapEvent({ ...event, status: 'rejected' });
+  reject: async (id, reason) => {
+    const { event } = await req(`/admin/events/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+    return mapEvent(event);
   },
 };

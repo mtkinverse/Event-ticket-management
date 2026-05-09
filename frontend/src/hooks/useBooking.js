@@ -10,7 +10,7 @@ export const useMyBookings = () => {
 
   useEffect(() => {
     if (!user) return;
-    bookingsApi.getMyBookings(user.id)
+    bookingsApi.getMyBookings()
       .then(setBookings)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -20,7 +20,6 @@ export const useMyBookings = () => {
 };
 
 export const useBookEvent = () => {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
@@ -29,7 +28,7 @@ export const useBookEvent = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await bookingsApi.create({ userId: user.id, eventId, quantity });
+      const data = await bookingsApi.create({ eventId, quantity });
       setResult(data);
       return data;
     } catch (e) {
@@ -43,7 +42,7 @@ export const useBookEvent = () => {
   const joinWaitlist = async (eventId) => {
     setLoading(true);
     try {
-      const data = await bookingsApi.joinWaitlist({ userId: user.id, eventId });
+      const data = await bookingsApi.joinWaitlist({ eventId });
       setResult(data);
       return data;
     } catch (e) {
