@@ -11,3 +11,5 @@ coverage/
 *CLAUDE*
 *.env*
 *MEMORY*
+
+package-lock.json
