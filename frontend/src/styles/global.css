@@ -201,3 +201,10 @@ tr:last-child td { border-bottom: none; }
 .w-full { width: 100%; }
 .text-center { text-align: center; }
 .font-bold { font-weight: 700; }
+
+/* ── QR Ticket ── */
+.qr-ticket { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-4); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
+.qr-ticket__img { width: 180px; height: 180px; image-rendering: pixelated; }
+.qr-ticket__meta { display: flex; align-items: center; gap: var(--space-3); }
+.qr-ticket__id { font-size: var(--font-size-sm); color: var(--text-muted); font-family: monospace; }
+.qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-4); }

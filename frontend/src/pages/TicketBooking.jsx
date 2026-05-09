@@ -5,6 +5,7 @@ import { useBookEvent } from '../hooks/useBooking.js';
 import { useNotify } from '../contexts/NotificationContext.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { SpinnerPage } from '../components/common/Spinner.jsx';
+import { QrTicket } from '../components/common/QrTicket.jsx';
 
 export default function TicketBooking() {
   const { id } = useParams();
@@ -25,7 +26,7 @@ export default function TicketBooking() {
     try {
       const result = await book({ eventId: id, quantity: qty });
       setDone(result);
-      notify.success('Booking confirmed! Check your email for the QR ticket.');
+      notify.success('Booking confirmed!');
     } catch (err) {
       notify.error(err.message);
     }
@@ -42,16 +43,19 @@ export default function TicketBooking() {
   };
 
   if (done) return (
-    <div className="page"><div className="container section" style={{ maxWidth: 520, margin: '0 auto', textAlign: 'center' }}>
+    <div className="page"><div className="container section" style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
       <div style={{ fontSize: 64, marginBottom: 'var(--space-4)' }}>🎟️</div>
       <h2 style={{ marginBottom: 'var(--space-2)' }}>You're In!</h2>
-      <p className="text-muted" style={{ marginBottom: 'var(--space-6)' }}>Your booking for <strong>{done.event.title}</strong> is confirmed. A QR ticket has been sent to your email.</p>
+      <p className="text-muted" style={{ marginBottom: 'var(--space-6)' }}>Your booking for <strong>{event.title}</strong> is confirmed. Save these QR tickets for entry.</p>
       <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)', textAlign: 'left' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', fontSize: 'var(--font-size-sm)' }}>
-          <div><div className="text-muted">Booking ID</div><strong>{done.booking.id}</strong></div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', fontSize: 'var(--font-size-sm)', marginBottom: 'var(--space-6)' }}>
+          <div><div className="text-muted">Booking ID</div><strong>#{done.booking.id.slice(0, 8)}</strong></div>
           <div><div className="text-muted">Quantity</div><strong>{done.booking.quantity} ticket(s)</strong></div>
           <div><div className="text-muted">Total Paid</div><strong>{done.booking.totalFormatted}</strong></div>
           <div><div className="text-muted">Status</div><strong style={{ color: 'var(--success)' }}>Confirmed</strong></div>
+        </div>
+        <div className="qr-grid">
+          {(done.booking.tickets ?? []).map(t => <QrTicket key={t.id} ticket={t} />)}
         </div>
       </div>
       <button className="btn btn--primary" onClick={() => navigate('/dashboard')}>View My Tickets</button>
@@ -82,9 +86,15 @@ export default function TicketBooking() {
             <form onSubmit={handleBook}>
               <div className="form-group">
                 <label className="form-label">Number of Tickets</label>
-                <select className="form-input form-select" value={qty} onChange={e => setQty(Number(e.target.value))}>
-                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                <input
+                  type="number"
+                  className="form-input"
+                  min={1}
+                  max={event.remaining}
+                  value={qty}
+                  onChange={e => setQty(Math.max(1, Math.min(event.remaining, Number(e.target.value) || 1)))}
+                />
+                <small className="text-muted">{event.remaining} ticket(s) available</small>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) 0', borderTop: '1px solid var(--border)', marginBottom: 'var(--space-6)' }}>
                 <span className="text-muted">Total ({qty} × {event.priceFormatted})</span>

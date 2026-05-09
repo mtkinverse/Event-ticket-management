@@ -13,7 +13,7 @@ const STATS_FROM = (events) => ({
 
 export default function OrganizerDashboard() {
   const { user } = useAuth();
-  const { events, loading } = useOrganizerEvents(user?.id);
+  const { events, loading } = useOrganizerEvents();
 
   if (loading) return <SpinnerPage />;
   const stats = STATS_FROM(events);

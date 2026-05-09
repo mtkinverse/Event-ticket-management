@@ -4,7 +4,7 @@ export const req = async (path, opts = {}) => {
   const token = localStorage.getItem('token');
   const res = await fetch(`${BASE}${path}`, {
     headers: {
-      'Content-Type': 'application/json',
+      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...opts.headers,
     },

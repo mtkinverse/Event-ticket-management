@@ -54,18 +54,18 @@ export const useEvent = (id) => {
   return { event, related, loading, error };
 };
 
-export const useOrganizerEvents = (organizerId) => {
+export const useOrganizerEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const data = await eventsApi.getByOrganizer(organizerId);
+    const data = await eventsApi.getByOrganizer();
     setEvents(data);
     setLoading(false);
-  }, [organizerId]);
+  }, []);
 
-  useEffect(() => { if (organizerId) reload(); }, [organizerId, reload]);
+  useEffect(() => { reload(); }, [reload]);
 
   return { events, loading, reload };
 };
