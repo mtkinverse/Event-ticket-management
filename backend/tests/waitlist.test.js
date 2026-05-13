@@ -16,10 +16,12 @@ const app = await buildApp();
 const del = (app, url, token) =>
   app.inject({ method: 'DELETE', url, headers: token ? { authorization: `Bearer ${token}` } : {} });
 
-const orgRes  = await post(app, '/auth/register', { name: 'Org', email: 'org@wl.com', password: 'secret123', role: 'organizer' });
-const custRes = await post(app, '/auth/register', { name: 'Cust', email: 'cust@wl.com', password: 'secret123', role: 'customer' });
-const orgToken  = JSON.parse(orgRes.body).token;
-const custToken = JSON.parse(custRes.body).token;
+const orgRes   = await post(app, '/auth/register', { name: 'Org',   email: 'org@wl.com',   password: 'secret123', role: 'organizer' });
+const custRes  = await post(app, '/auth/register', { name: 'Cust',  email: 'cust@wl.com',  password: 'secret123', role: 'customer' });
+const cust2Res = await post(app, '/auth/register', { name: 'Cust2', email: 'cust2@wl.com', password: 'secret123', role: 'customer' });
+const orgToken   = JSON.parse(orgRes.body).token;
+const custToken  = JSON.parse(custRes.body).token;
+const cust2Token = JSON.parse(cust2Res.body).token;
 
 const adminData = await createUser({ name: 'Admin', email: 'admin@wl.com', password: 'secret123', role: 'admin' });
 await userRepo.insert(adminData);
@@ -35,6 +37,26 @@ const createRes = await post(app, '/events', {
 }, { authorization: `Bearer ${orgToken}` });
 const eventId = JSON.parse(createRes.body).event.id;
 await post(app, `/admin/events/${eventId}/approve`, {}, { authorization: `Bearer ${adminToken}` });
+
+// ── fill capacity so remaining hits 0 (waitlist join requires a full event) ─
+{
+  const res = await post(app, '/bookings', { eventId, quantity: 1 }, { authorization: `Bearer ${cust2Token}` });
+  assertStatus(res, 201, 'second customer books the last seat → 201');
+}
+
+// ── joining a non-full event is rejected ────────────────────────────────────
+{
+  // create a separate event that still has seats
+  const openEventRes = await post(app, '/events', {
+    title: 'Has Seats', description: 'open', category: 'music', location: 'NYC',
+    startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPrice: 25,
+  }, { authorization: `Bearer ${orgToken}` });
+  const openId = JSON.parse(openEventRes.body).event.id;
+  await post(app, `/admin/events/${openId}/approve`, {}, { authorization: `Bearer ${adminToken}` });
+
+  const res = await post(app, '/waitlist', { eventId: openId }, { authorization: `Bearer ${custToken}` });
+  assertStatus(res, 422, 'join non-full event → 422');
+}
 
 // ── customer joins waitlist ─────────────────────────────────────────────────
 {
