@@ -113,3 +113,21 @@
 - `templates/{booking-confirmation,waitlist-alert,refund-confirmation}.js` — plain string builders
 - Wired into: `booking.service.create`, `waitlist.service.promote`, `event.service.cancel`
 - Tests: `tests/notifications.test.js`
+
+---
+
+## Phase 6 — Hardening (cross-cutting cleanup)
+
+Runs after all feature phases are merged. Refactor-only pass — no new endpoints, no behavior change.
+
+**Commit:** `refactor(backend): Phase 6 — hardening sweep (bulk queries, error paths, response shaping)`
+
+**Items:**
+- **Bulk-query sweep** — audit every `services/*.js` for N+1 patterns and convert to the bulk equivalents enforced by `backend/CLAUDE.md` "Bulk operations are mandatory":
+  - `Promise.all(xs.map(id => repo.findById(id)))` → `repo.findMany({ id: ids })`
+  - `for (const x of xs) { await repo.insert(x); }` / `Promise.all(records.map(repo.insert))` → `repo.insertBulk(records)`
+  - Same shape for updates and deletes.
+  - Confirmed entry points to inspect: `booking.service.js`, `waitlist.service.js`, `event.service.js`, `auth.service.js`. Grep `services/` for `Promise.all`, `\.findById`, `await repo.insert(` to surface anything missed.
+- **Error-handler polish** — map Sequelize `UniqueConstraintError` / `ValidationError` to 409 / 422 with the offending field name surfaced in the JSON body.
+- **Response shaping consistency** — every handler returns `{ <resource>: shape(...) }` and never a raw Sequelize instance; verify with a one-pass review of all handlers.
+- **Tests for concurrency-sensitive paths** — at minimum `bookingService.create` under simultaneous requests (the row-lock is currently untested).

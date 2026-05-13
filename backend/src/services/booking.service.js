@@ -67,11 +67,31 @@ export const bookingService = {
   async listMine(userId) {
     const bookings = await bookingRepo.findByUser(userId);
     if (bookings.length === 0) return [];
+
+    const eventIds = [...new Set(bookings.map(b => b.eventId))];
+    const events   = await eventRepo.findMany({ id: eventIds });
+    const byEvent  = Object.fromEntries(events.map(e => [e.id, e]));
+
     const tickets = await ticketRepo.findByBookings(bookings.map(b => b.id));
     const byBooking = tickets.reduce((acc, t) => {
       (acc[t.bookingId] ||= []).push(t);
       return acc;
     }, {});
-    return bookings.map(b => ({ ...b, tickets: byBooking[b.id] ?? [] }));
+
+    return bookings.map(b => {
+      const e = byEvent[b.eventId];
+      return {
+        ...b,
+        tickets: byBooking[b.id] ?? [],
+        event: e && {
+          id:             e.id,
+          title:          e.title,
+          location:       e.location,
+          startsAt:       e.startsAt,
+          refundDeadline: e.refundDeadline,
+          status:         e.status,
+        },
+      };
+    });
   },
 };

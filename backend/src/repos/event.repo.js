@@ -4,8 +4,18 @@ import { createBaseRepo } from './base.repo.js';
 
 const base = createBaseRepo(() => sequelize.models.Event);
 
+const allowedFields = () => new Set(Object.keys(sequelize.models.Event.rawAttributes));
+
 export const eventRepo = {
   ...base,
+
+  findMany(filter = {}, opts = {}) {
+    const allowed = allowedFields();
+    const where = Object.fromEntries(
+      Object.entries(filter).filter(([k]) => allowed.has(k)),
+    );
+    return base.findAll(where, opts);
+  },
 
   findActive(filters = {}) {
     const where = { status: 'active' };
