@@ -7,16 +7,30 @@ export const useMyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
 
-  useEffect(() => {
-    if (!user) return;
-    bookingsApi.getMyBookings()
+  const refresh = () => {
+    if (!user) return Promise.resolve();
+    setLoading(true);
+    return bookingsApi.getMyBookings()
       .then(setBookings)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [user]);
+  };
 
-  return { bookings, loading, error };
+  useEffect(() => { refresh(); }, [user]);
+
+  const cancel = async (bookingId) => {
+    setCancellingId(bookingId);
+    try {
+      await bookingsApi.cancel(bookingId);
+      await refresh();
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  return { bookings, loading, error, cancel, cancellingId, refresh };
 };
 
 export const useBookEvent = () => {
