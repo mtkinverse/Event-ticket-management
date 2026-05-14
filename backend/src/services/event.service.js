@@ -1,11 +1,22 @@
 import { eventRepo }           from '../repos/event.repo.js';
 import { applicationFeeRepo }  from '../repos/application_fee.repo.js';
+import { userRepo }            from '../repos/user.repo.js';
 import { createEvent, createApplicationFee } from '../strategies/factories/event.factory.js';
 import { canEditEvent }        from '../strategies/policies/event.policy.js';
 import { transition }          from '../strategies/event-state/index.js';
 import { resolvePaymentStrategy } from '../strategies/payment/index.js';
+import { notificationService } from './notification.service.js';
 import { config }              from '../configs/index.js';
 import { AppError }            from '../utils/errors.js';
+
+const slimEvent = (e) => e && ({
+  id:             e.id,
+  title:          e.title,
+  location:       e.location,
+  startsAt:       e.startsAt,
+  refundDeadline: e.refundDeadline,
+  status:         e.status,
+});
 
 export const eventService = {
   async create(data, organizerId) {
@@ -68,6 +79,13 @@ export const eventService = {
       await applicationFeeRepo.updateById(fee.id, { status: 'consumed', resolvedAt: new Date() });
     }
 
+    const organizer = await userRepo.findById(event.organizerId);
+    await notificationService.notify({
+      user: organizer,
+      type: 'event.approved',
+      payload: { event: slimEvent(saved) },
+    });
+
     return saved;
   },
 
@@ -86,6 +104,13 @@ export const eventService = {
       });
       await applicationFeeRepo.updateById(fee.id, { status: 'refunded', resolvedAt: new Date() });
     }
+
+    const organizer = await userRepo.findById(event.organizerId);
+    await notificationService.notify({
+      user: organizer,
+      type: 'event.rejected',
+      payload: { event: slimEvent(saved), reason },
+    });
 
     return saved;
   },

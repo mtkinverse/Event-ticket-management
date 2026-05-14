@@ -12,4 +12,9 @@ export const waitlistHandler = {
     const result = await waitlistService.leave(req.params.eventId, req.user);
     reply.send(result);
   },
+
+  async mine(req, reply) {
+    const entries = await waitlistService.listMine(req.user.id);
+    reply.send({ entries: entries.map(shapeEntry) });
+  },
 };

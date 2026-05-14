@@ -1,21 +1,37 @@
-import { bookingRepo }   from '../repos/booking.repo.js';
-import { ticketRepo }    from '../repos/ticket.repo.js';
-import { eventRepo }     from '../repos/event.repo.js';
-import { createBooking } from '../strategies/factories/booking.factory.js';
-import { createTickets } from '../strategies/factories/ticket.factory.js';
+import { bookingRepo }         from '../repos/booking.repo.js';
+import { ticketRepo }          from '../repos/ticket.repo.js';
+import { eventRepo }           from '../repos/event.repo.js';
+import { userRepo }            from '../repos/user.repo.js';
+import { waitlistEntryRepo }   from '../repos/waitlist_entry.repo.js';
+import { createBooking }       from '../strategies/factories/booking.factory.js';
+import { createTickets }       from '../strategies/factories/ticket.factory.js';
 import { canBook, canCancelBooking } from '../strategies/policies/booking.policy.js';
-import { AppError }      from '../utils/errors.js';
+import { notificationService } from './notification.service.js';
+import { waitlistService }     from './waitlist.service.js';
+import { AppError }            from '../utils/errors.js';
+
+const slimEvent = (e) => e && ({
+  id:             e.id,
+  title:          e.title,
+  location:       e.location,
+  startsAt:       e.startsAt,
+  refundDeadline: e.refundDeadline,
+  status:         e.status,
+});
 
 export const bookingService = {
   async create({ eventId, quantity }, user) {
     if (!canBook(user)) throw new AppError('Forbidden', 403);
 
-    return bookingRepo.withTransaction(async (t) => {
+    let lockedEvent;
+
+    const result = await bookingRepo.withTransaction(async (t) => {
       const event = await eventRepo.findById(eventId, { transaction: t, lock: t.LOCK.UPDATE });
       if (!event) throw new AppError('Event not found', 404);
       if (event.status !== 'active') throw new AppError('Event is not open for booking', 422);
       if (!event.registrationOpen) throw new AppError('Registration is closed', 422);
       if (event.remaining < quantity) throw new AppError('Not enough seats remaining', 409);
+      lockedEvent = event;
 
       await eventRepo.updateById(eventId, { remaining: event.remaining - quantity }, { transaction: t });
 
@@ -25,15 +41,29 @@ export const bookingService = {
       const tickets = await createTickets({ bookingId: saved.id, eventId, quantity });
       const savedTickets = await ticketRepo.insertBulk(tickets, { transaction: t });
 
+      // Auto-clear waitlist: if this user was waitlisted for this event, drop the entry
+      // so they aren't holding a redundant spot now that they've booked.
+      const existingWl = await waitlistEntryRepo.findByUserAndEvent(user.id, eventId, { transaction: t });
+      if (existingWl) await waitlistEntryRepo.deleteById(existingWl.id, { transaction: t });
+
       // TODO Phase 4: chargeBooking(saved) via payment strategy
-      // TODO Phase 5: notify user (email + QR attachment)
 
       return { ...saved, tickets: savedTickets };
     });
+
+    await notificationService.notify({
+      user,
+      type: 'booking.confirmed',
+      payload: { booking: result, event: slimEvent(lockedEvent), tickets: result.tickets },
+    });
+
+    return result;
   },
 
   async cancel(bookingId, user) {
-    return bookingRepo.withTransaction(async (t) => {
+    let lockedEvent;
+
+    const saved = await bookingRepo.withTransaction(async (t) => {
       const booking = await bookingRepo.findById(bookingId, { transaction: t, lock: t.LOCK.UPDATE });
       if (!booking) throw new AppError('Booking not found', 404);
       if (!canCancelBooking(user, booking)) throw new AppError('Forbidden', 403);
@@ -45,6 +75,7 @@ export const bookingService = {
       }
       if (event) {
         await eventRepo.updateById(event.id, { remaining: event.remaining + booking.quantity }, { transaction: t });
+        lockedEvent = event;
       }
 
       const cancelledAt = new Date();
@@ -53,15 +84,33 @@ export const bookingService = {
         { status: 'cancelled', cancelledAt },
         { transaction: t },
       );
-      const saved = { ...booking, status: 'cancelled', cancelledAt };
-
       const tickets = await ticketRepo.findByBooking(bookingId, { transaction: t });
 
       // TODO Phase 4: refundBooking(saved)
-      // TODO Phase 5: notify user of cancellation
 
-      return { ...saved, tickets };
+      return { ...booking, status: 'cancelled', cancelledAt, tickets };
     });
+
+    // Email the booking owner (which may not be the actor — admin can cancel customer bookings).
+    const owner = user.id === saved.userId ? user : await userRepo.findById(saved.userId);
+    await notificationService.notify({
+      user: owner,
+      type: 'booking.cancelled',
+      payload: { booking: saved, event: slimEvent(lockedEvent) },
+    });
+
+    // Promote the next waiting waitlist entry (advisory hold). Phase 4 will harden seat reservation.
+    const promoted = await waitlistService.promote(saved.eventId);
+    if (promoted) {
+      const promotedUser = await userRepo.findById(promoted.entry.userId);
+      await notificationService.notify({
+        user: promotedUser,
+        type: 'waitlist.promoted',
+        payload: { event: slimEvent(lockedEvent), holdExpiresAt: promoted.holdExpiresAt },
+      });
+    }
+
+    return saved;
   },
 
   async listMine(userId) {
@@ -78,20 +127,10 @@ export const bookingService = {
       return acc;
     }, {});
 
-    return bookings.map(b => {
-      const e = byEvent[b.eventId];
-      return {
-        ...b,
-        tickets: byBooking[b.id] ?? [],
-        event: e && {
-          id:             e.id,
-          title:          e.title,
-          location:       e.location,
-          startsAt:       e.startsAt,
-          refundDeadline: e.refundDeadline,
-          status:         e.status,
-        },
-      };
-    });
+    return bookings.map(b => ({
+      ...b,
+      tickets: byBooking[b.id] ?? [],
+      event:   slimEvent(byEvent[b.eventId]),
+    }));
   },
 };
