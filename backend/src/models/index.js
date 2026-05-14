@@ -5,6 +5,7 @@ import { defineApplicationFee } from './application_fee.model.js';
 import { defineBooking }        from './booking.model.js';
 import { defineTicket }         from './ticket.model.js';
 import { defineWaitlistEntry }  from './waitlist_entry.model.js';
+import { defineNotification }   from './notification.model.js';
 
 const ASSOCIATIONS = [
   { base: 'User',           ref: 'Event',          assoc: 'hasMany',   fk: 'organizerId', as: 'events'        },
@@ -27,6 +28,9 @@ const ASSOCIATIONS = [
   { base: 'WaitlistEntry',  ref: 'User',           assoc: 'belongsTo', fk: 'userId',      as: 'user'            },
   { base: 'Event',          ref: 'WaitlistEntry',  assoc: 'hasMany',   fk: 'eventId',     as: 'waitlistEntries' },
   { base: 'WaitlistEntry',  ref: 'Event',          assoc: 'belongsTo', fk: 'eventId',     as: 'event'           },
+
+  { base: 'User',           ref: 'Notification',   assoc: 'hasMany',   fk: 'userId',      as: 'notifications'   },
+  { base: 'Notification',   ref: 'User',           assoc: 'belongsTo', fk: 'userId',      as: 'user'            },
 ];
 
 function loadModels(seq) {
@@ -37,6 +41,7 @@ function loadModels(seq) {
     Booking:        defineBooking(seq),
     Ticket:         defineTicket(seq),
     WaitlistEntry:  defineWaitlistEntry(seq),
+    Notification:   defineNotification(seq),
   };
 
   ASSOCIATIONS.forEach(({ base, ref, assoc, fk, as }) =>
