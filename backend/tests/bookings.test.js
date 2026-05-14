@@ -1,13 +1,15 @@
+process.env.NODE_ENV = 'test';
+process.env.NOTIFICATION_CHANNEL = 'mock';
+
 import { buildApp }    from '../src/app.js';
 import { initModels }  from '../src/models/index.js';
 import { sequelize }   from '../src/db/index.js';
 import { userRepo }    from '../src/repos/user.repo.js';
 import { eventRepo }   from '../src/repos/event.repo.js';
 import { createUser } from '../src/strategies/factories/user.factory.js';
+import { mockChannel } from '../src/strategies/notification/index.js';
 import { assert, assertStatus, summary } from './helpers/assert.js';
 import { post, get } from './helpers/request.js';
-
-process.env.NODE_ENV = 'test';
 
 await initModels();
 await sequelize.sync({ force: true });
@@ -44,6 +46,7 @@ await post(app, `/admin/events/${eventId}/approve`, {}, { authorization: `Bearer
 // ── customer creates a booking ──────────────────────────────────────────────
 let bookingId;
 {
+  mockChannel.clear();
   const res = await post(app, '/bookings', { eventId, quantity: 2 }, { authorization: `Bearer ${custToken}` });
   assertStatus(res, 201, 'customer create booking → 201');
   const body = JSON.parse(res.body);
@@ -54,6 +57,10 @@ let bookingId;
   assert(body.booking.tickets[0].qrCode.startsWith('data:image/png;base64,'), 'ticket has base64 PNG QR');
   assert(typeof body.booking.tickets[0].ticketNumber === 'string', 'ticket has ticketNumber');
   bookingId = body.booking.id;
+
+  const confEmail = mockChannel.history.find(m => m.to === 'cust@bk.com' && /tickets|booking/i.test(m.subject));
+  assert(confEmail,                                    'booking.confirmed email dispatched to booker');
+  assert(confEmail && confEmail.attachments.length === 2, 'two QR attachments on the email');
 }
 
 // ── event.remaining decremented ─────────────────────────────────────────────
@@ -97,11 +104,14 @@ let bookingId;
 
 // ── customer cancels own booking ────────────────────────────────────────────
 {
+  mockChannel.clear();
   const res = await del(app, `/bookings/${bookingId}`, custToken);
   assertStatus(res, 200, 'cancel own booking → 200');
   const body = JSON.parse(res.body);
   assert(body.booking.status === 'cancelled', 'booking → cancelled');
   assert(body.booking.cancelledAt, 'cancelledAt set');
+  assert(mockChannel.history.some(m => m.to === 'cust@bk.com' && /cancelled/i.test(m.subject)),
+         'booking.cancelled email dispatched to canceller');
 }
 
 // ── seats returned to event ─────────────────────────────────────────────────
