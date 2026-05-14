@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../hooks/useEvents.js';
 import { useRole } from '../hooks/useRole.js';
 import { useBookEvent } from '../hooks/useBooking.js';
+import { useMyWaitlist } from '../hooks/useWaitlist.js';
 import { useNotify } from '../contexts/NotificationContext.jsx';
 import { EventCard } from '../components/common/EventCard.jsx';
 import { Badge } from '../components/common/Badge.jsx';
@@ -12,6 +13,7 @@ export default function EventDetails() {
   const { event, related, loading, error } = useEvent(id);
   const { isLoggedIn } = useRole();
   const { joinWaitlist, loading: waitlistLoading } = useBookEvent();
+  const { isOnWaitlist, leave: leaveWaitlist, pendingId, refresh: refreshWaitlist } = useMyWaitlist();
   const notify = useNotify();
   const navigate = useNavigate();
 
@@ -25,11 +27,23 @@ export default function EventDetails() {
     navigate(`/events/${id}/book`);
   };
 
+  const onWaitlist = isLoggedIn && isOnWaitlist(id);
+
   const handleWaitlist = async () => {
     if (!isLoggedIn) return navigate('/login');
     try {
       await joinWaitlist(id);
+      await refreshWaitlist();
       notify.success(`You're on the waitlist for "${event.title}". We'll notify you if a seat opens.`);
+    } catch (err) {
+      notify.error(err.message);
+    }
+  };
+
+  const handleLeaveWaitlist = async () => {
+    try {
+      await leaveWaitlist(id);
+      notify.success(`You've left the waitlist for "${event.title}".`);
     } catch (err) {
       notify.error(err.message);
     }
@@ -75,9 +89,20 @@ export default function EventDetails() {
               {event.isSoldOut ? '🔴 Sold Out' : event.isAlmostFull ? `🟡 Only ${event.remaining} left` : `🟢 ${event.remaining} spots available`}
             </div>
             {event.isSoldOut ? (
-              <button className="btn btn--outline w-full" disabled={waitlistLoading} onClick={handleWaitlist}>
-                {waitlistLoading ? 'Joining…' : 'Join Waitlist'}
-              </button>
+              onWaitlist ? (
+                <>
+                  <p className="text-center mt-2 mb-4" style={{ color: 'var(--success)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
+                    ✓ You're on the waitlist
+                  </p>
+                  <button className="btn btn--ghost w-full" disabled={pendingId === id} onClick={handleLeaveWaitlist}>
+                    {pendingId === id ? 'Leaving…' : 'Leave Waitlist'}
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn--outline w-full" disabled={waitlistLoading} onClick={handleWaitlist}>
+                  {waitlistLoading ? 'Joining…' : 'Join Waitlist'}
+                </button>
+              )
             ) : event.status !== 'active' ? (
               <p className="text-muted text-center">Booking not available</p>
             ) : (
