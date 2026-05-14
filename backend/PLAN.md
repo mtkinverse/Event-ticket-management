@@ -97,22 +97,24 @@
 
 ---
 
-## Phase 5 — Notifications (Email)
+## Phase 5 — Notifications (Email) ✅ SHIPPED
 
 **Commit:** `feat(backend): Phase 5 — email channel, booking confirmation, waitlist alerts`
 
-**Key additions:**
-- `models/notification.model.js`
-- `repos/notification.repo.js`
-- `strategies/notification/notification.strategy.js` — interface doc
-- `strategies/notification/email.channel.js` — nodemailer; sends and saves `Notification` record
-- `strategies/notification/sms.channel.js` — stub (interface only, no impl)
-- `strategies/notification/in_app.channel.js` — stub
-- `strategies/notification/index.js` — `resolveChannel(name)`
-- `services/notification.service.js` — `notify(userId, type, payload, channel='email')`
-- `templates/{booking-confirmation,waitlist-alert,refund-confirmation}.js` — plain string builders
-- Wired into: `booking.service.create`, `waitlist.service.promote`, `event.service.cancel`
-- Tests: `tests/notifications.test.js`
+**Shipped:**
+- `models/notification.model.js` — audit row per dispatch (`pending` / `sent` / `failed`).
+- `repos/notification.repo.js` — `...base` only.
+- `strategies/notification/{notification.strategy,email.channel,mock.channel,sms.channel,in_app.channel,index}.js` — env-driven resolver mirrors the payment-strategy pattern. SMS / in-app are interface-only stubs.
+- `services/notification.service.js` — `notify({ user, type, payload })`. SoC: caller pre-loads `user`; no internal `userRepo` fetch. Error-isolated: failures land as `status='failed'` rows and never propagate.
+- `configs/templates.config.js` — single config file with all 6 builders + `getTemplate(type)` getter (no per-template files).
+- `utils/template.js` — `populateTemplate(type, payload)` + shared responsive themed `layout()` (inline-styled, `@media` mobile rules, table-based for Gmail/Outlook compat).
+- Wired into: `booking.service.create` (auto-clear waitlist on book + `booking.confirmed` email), `booking.service.cancel` (`booking.cancelled` + promote first waiting entry → `waitlist.promoted` email), `waitlist.service.join` (`waitlist.joined`), `event.service.approve` (`event.approved` to organizer), `event.service.reject` (`event.rejected` with reason).
+- `waitlist.service.promote(eventId)` — transitions first waiting entry to `held` with `holdExpiresAt = now + WAITLIST_HOLD_MINUTES`.
+- `waitlist.service.listMine(userId)` + `GET /waitlist/my` — frontend uses for the new Leave Waitlist button on `EventDetails`.
+- Frontend: `services/api/waitlist.js`, `mappers/waitlist.mapper.js`, `hooks/useWaitlist.js`, `EventDetails` Join↔Leave toggle.
+- Tests: `tests/notifications.test.js` (63 assertions, including template responsive markers + failure path), extended `tests/waitlist.test.js` (+15 — promote-on-cancel, auto-clear, `GET /waitlist/my`), extended `tests/bookings.test.js` (+3 — email assertions on happy paths).
+
+**Phase 4 follow-up:** `waitlist.promoted` *template* shipped & wired here; the *hold enforcement* (reserving the seat exclusively for the held user + sweep job that re-promotes on hold expiry) is Phase 4. v1 hold is advisory.
 
 ---
 
