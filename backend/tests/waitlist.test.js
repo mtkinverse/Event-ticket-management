@@ -8,6 +8,7 @@ import { userRepo }            from '../src/repos/user.repo.js';
 import { waitlistEntryRepo }   from '../src/repos/waitlist_entry.repo.js';
 import { createUser }          from '../src/strategies/factories/user.factory.js';
 import { mockChannel }         from '../src/strategies/notification/index.js';
+import { seedOrganizer, seedAdmin } from './helpers/seed.js';
 import { config }              from '../src/configs/index.js';
 import { assert, assertStatus, summary } from './helpers/assert.js';
 import { post, get }           from './helpers/request.js';
@@ -20,24 +21,19 @@ const app = await buildApp();
 const del = (app, url, token) =>
   app.inject({ method: 'DELETE', url, headers: token ? { authorization: `Bearer ${token}` } : {} });
 
-const orgRes   = await post(app, '/auth/register', { name: 'Org',   email: 'org@wl.com',   password: 'secret123', role: 'organizer' });
-const custRes  = await post(app, '/auth/register', { name: 'Cust',  email: 'cust@wl.com',  password: 'secret123', role: 'customer' });
-const cust2Res = await post(app, '/auth/register', { name: 'Cust2', email: 'cust2@wl.com', password: 'secret123', role: 'customer' });
-const orgToken   = JSON.parse(orgRes.body).token;
+const orgToken   = await seedOrganizer(app, { name: 'Org',   email: 'org@wl.com' });
+const adminToken = await seedAdmin(app,     { name: 'Admin', email: 'admin@wl.com' });
+const custRes    = await post(app, '/auth/register', { name: 'Cust',  email: 'cust@wl.com',  password: 'secret123' });
+const cust2Res   = await post(app, '/auth/register', { name: 'Cust2', email: 'cust2@wl.com', password: 'secret123' });
 const custToken  = JSON.parse(custRes.body).token;
 const cust2Token = JSON.parse(cust2Res.body).token;
-
-const adminData = await createUser({ name: 'Admin', email: 'admin@wl.com', password: 'secret123', role: 'admin' });
-await userRepo.insert(adminData);
-const adminLoginRes = await post(app, '/auth/login', { email: 'admin@wl.com', password: 'secret123' });
-const adminToken = JSON.parse(adminLoginRes.body).token;
 
 const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
 const dayAfter = new Date(Date.now() + 2 * 86_400_000).toISOString();
 
 const createRes = await post(app, '/events', {
   title: 'Sold Out Show', description: 'No seats', category: 'music', location: 'NYC',
-  startsAt: tomorrow, endsAt: dayAfter, capacity: 1, ticketPrice: 50,
+  startsAt: tomorrow, endsAt: dayAfter, capacity: 1, ticketPriceMinor: 0, currency: 'PKR',
 }, { authorization: `Bearer ${orgToken}` });
 const eventId = JSON.parse(createRes.body).event.id;
 await post(app, `/admin/events/${eventId}/approve`, {}, { authorization: `Bearer ${adminToken}` });
@@ -53,7 +49,7 @@ await post(app, `/admin/events/${eventId}/approve`, {}, { authorization: `Bearer
   // create a separate event that still has seats
   const openEventRes = await post(app, '/events', {
     title: 'Has Seats', description: 'open', category: 'music', location: 'NYC',
-    startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPrice: 25,
+    startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPriceMinor: 0, currency: 'PKR',
   }, { authorization: `Bearer ${orgToken}` });
   const openId = JSON.parse(openEventRes.body).event.id;
   await post(app, `/admin/events/${openId}/approve`, {}, { authorization: `Bearer ${adminToken}` });

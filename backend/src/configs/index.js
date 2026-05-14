@@ -16,7 +16,10 @@ export const config = {
   },
 
   paymentGateway: process.env.PAYMENT_GATEWAY || 'mock',
-  applicationFeeAmount: Number(process.env.APPLICATION_FEE_AMOUNT) || 2500,
+  applicationFee: {
+    amountMinor: Number(process.env.APPLICATION_FEE_AMOUNT_MINOR) || 500000,  // ₨ 5,000 default
+    currency:    process.env.APPLICATION_FEE_CURRENCY || 'PKR',
+  },
   waitlistHoldMinutes: Number(process.env.WAITLIST_HOLD_MINUTES) || 15,
 
   smtp: {

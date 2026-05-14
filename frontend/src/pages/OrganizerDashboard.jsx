@@ -1,8 +1,12 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { useOrganizerEvents } from '../hooks/useEvents.js';
 import { Badge } from '../components/common/Badge.jsx';
+import { Modal } from '../components/common/Modal.jsx';
 import { SpinnerPage } from '../components/common/Spinner.jsx';
+
+const ONBOARDED_KEY = 'eventhub.organizer.onboarded';
 
 const STATS_FROM = (events) => ({
   total: events.length,
@@ -14,6 +18,23 @@ const STATS_FROM = (events) => ({
 export default function OrganizerDashboard() {
   const { user } = useAuth();
   const { events, loading } = useOrganizerEvents();
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    if (params.get('onboarded') === '1' && !localStorage.getItem(ONBOARDED_KEY)) {
+      setShowTour(true);
+    }
+  }, [params]);
+
+  const dismissTour = () => {
+    localStorage.setItem(ONBOARDED_KEY, '1');
+    setShowTour(false);
+    // strip the query param so refresh doesn't re-trigger.
+    params.delete('onboarded');
+    setParams(params, { replace: true });
+  };
 
   if (loading) return <SpinnerPage />;
   const stats = STATS_FROM(events);
@@ -73,6 +94,26 @@ export default function OrganizerDashboard() {
           </div>
         )}
       </div>
+
+      <Modal
+        open={showTour}
+        title="Welcome aboard, organizer! 🎉"
+        onCancel={dismissTour}
+        onConfirm={() => { dismissTour(); navigate('/events/new'); }}
+        confirmLabel="Host my first event"
+        cancelLabel="I'll explore first"
+        confirmVariant="primary"
+      >
+        <p>Here's how to host your first event:</p>
+        <ol style={{ paddingLeft: '1.25em', margin: 'var(--space-3) 0' }}>
+          <li style={{ marginBottom: 'var(--space-2)' }}>Click <strong>Host my first event</strong> below to open the event form.</li>
+          <li style={{ marginBottom: 'var(--space-2)' }}>Fill in the details — title, date, capacity. Paid events are coming soon; for now everything is free.</li>
+          <li>Submit for admin approval. Once approved, your event goes live and attendees can book.</li>
+        </ol>
+        <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)' }}>
+          You can always come back via the <strong>+ Host Event</strong> button in the nav.
+        </p>
+      </Modal>
     </div>
   );
 }

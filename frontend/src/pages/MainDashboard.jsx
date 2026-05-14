@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { useRole } from '../hooks/useRole.js';
 import { useMyBookings } from '../hooks/useBooking.js';
+import { useMyApplication } from '../hooks/useOrganizerApplication.js';
 import { useNotify } from '../contexts/NotificationContext.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { SpinnerPage } from '../components/common/Spinner.jsx';
@@ -22,6 +23,7 @@ export default function MainDashboard() {
   const { user } = useAuth();
   const { isOrganizer, isAdmin } = useRole();
   const { bookings, loading, cancel, cancellingId } = useMyBookings();
+  const { application } = useMyApplication();
   const notify = useNotify();
   const [expanded, setExpanded] = useState(null);
   const [pendingCancel, setPendingCancel] = useState(null);
@@ -55,6 +57,24 @@ export default function MainDashboard() {
         </div>
       </div>
       <div className="container section" style={{ paddingTop: 'var(--space-8)' }}>
+        {/* Become-an-organizer CTA — visible when no pending or approved application exists. */}
+        {(!application || application.status === 'rejected') && (
+          <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)', borderLeft: '4px solid var(--accent)' }}>
+            <h3 style={{ marginBottom: 'var(--space-2)' }}>Want to host events on EventHub?</h3>
+            <p className="text-muted" style={{ marginBottom: 'var(--space-4)' }}>
+              {application?.status === 'rejected'
+                ? 'Your previous application wasn’t approved. Reach out to support if you’d like to revise and re-apply.'
+                : 'Apply to become an organizer. Pay the security fee, upload your transfer screenshot, and we’ll review within 48 hours.'}
+            </p>
+            <Link to="/become-organizer" className="btn btn--primary">Apply now</Link>
+          </div>
+        )}
+        {application?.status === 'pending' && (
+          <div className="card" style={{ padding: 'var(--space-4) var(--space-6)', marginBottom: 'var(--space-6)', background: 'var(--bg-alt)' }}>
+            <strong>Organizer application under review</strong>
+            <span className="text-muted" style={{ marginLeft: 'var(--space-3)' }}>We'll email you once a decision is made.</span>
+          </div>
+        )}
         {loading ? <SpinnerPage /> : bookings.length === 0 ? (
           <div className="empty-state">
             <h3>No bookings yet</h3>

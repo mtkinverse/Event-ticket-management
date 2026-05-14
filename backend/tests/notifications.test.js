@@ -14,6 +14,7 @@ import { mockChannel } from '../src/strategies/notification/index.js';
 import { assert, assertStatus, summary } from './helpers/assert.js';
 import { post, get } from './helpers/request.js';
 import { reset } from './helpers/notifications.js';
+import { seedOrganizer, seedAdmin } from './helpers/seed.js';
 
 process.env.NODE_ENV = 'test';
 
@@ -29,7 +30,7 @@ const del = (app, url, token) =>
 {
   const stubUser  = { id: '00000000-0000-0000-0000-000000000001', name: 'Ada Lovelace', email: 'ada@test.com' };
   const stubEvent = { id: 'evt-1', title: 'Music Night', location: 'NYC', startsAt: new Date('2026-09-01T19:00:00Z').toISOString(), refundDeadline: null, status: 'active' };
-  const stubBooking = { id: 'bk-1', quantity: 2, totalAmount: '50.00' };
+  const stubBooking = { id: 'bk-1', quantity: 2, totalAmountMinor: 0, currency: 'PKR' };
   const stubTicket  = { id: 'tk-1', ticketNumber: 'TKT-ABC123', qrCode: 'data:image/png;base64,iVBORw0KGgo=' };
 
   const cases = [
@@ -66,7 +67,7 @@ const del = (app, url, token) =>
   let threw = false;
   try { getTemplate('does.not.exist'); } catch { threw = true; }
   assert(threw, 'getTemplate(unknown) throws');
-  assert(Object.keys(templates).length === 6, 'six template keys registered');
+  assert(Object.keys(templates).length === 9, 'nine template keys registered');
 }
 
 // ── notify happy path persists a row with status=sent ───────────────────────
@@ -133,17 +134,15 @@ const del = (app, url, token) =>
 {
   reset();
   // organizer + customer + admin
-  const orgToken  = JSON.parse((await post(app, '/auth/register', { name: 'O',  email: 'o@bk.com', password: 'secret123', role: 'organizer' })).body).token;
-  const custToken = JSON.parse((await post(app, '/auth/register', { name: 'C',  email: 'c@bk.com', password: 'secret123', role: 'customer' })).body).token;
-  const adminData = await createUser({ name: 'A', email: 'a@bk.com', password: 'secret123', role: 'admin' });
-  await userRepo.insert(adminData);
-  const adminToken = JSON.parse((await post(app, '/auth/login', { email: 'a@bk.com', password: 'secret123' })).body).token;
+  const orgToken   = await seedOrganizer(app, { name: 'O', email: 'o@bk.com' });
+  const adminToken = await seedAdmin(app,     { name: 'A', email: 'a@bk.com' });
+  const custToken  = JSON.parse((await post(app, '/auth/register', { name: 'C', email: 'c@bk.com', password: 'secret123' })).body).token;
 
   const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
   const dayAfter = new Date(Date.now() + 2 * 86_400_000).toISOString();
 
   const evRes = await post(app, '/events', { title: 'Notif Event', description: 'x', category: 'music', location: 'LA',
-                                              startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPrice: 25 },
+                                              startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPriceMinor: 0, currency: 'PKR' },
                             { authorization: `Bearer ${orgToken}` });
   const eventId = JSON.parse(evRes.body).event.id;
 
@@ -170,6 +169,54 @@ const del = (app, url, token) =>
   const cust = await userRepo.findByEmail('c@bk.com');
   const rows = await notificationRepo.findAll({ userId: cust.id, type: 'booking.confirmed' });
   assert(rows.some(r => r.status === 'failed'), 'failed notification row persisted');
+}
+
+// ── CR-B: per-user preferences mute optional types ──────────────────────────
+{
+  const { meService } = await import('../src/services/me.service.js');
+  const { templates, MANDATORY_TYPES } = await import('../src/configs/templates.config.js');
+
+  // Use a fresh user so we don't collide with prior mock-channel history.
+  const userData = await createUser({ name: 'Muted', email: 'mute@nt.com', password: 'secret123', role: 'customer' });
+  const inserted = await userRepo.insert(userData);
+
+  // default prefs: every type listed, all muted=false, mandatory flag matches the config Set.
+  const prefs = await meService.listPreferences(inserted.id);
+  assert(prefs.length === Object.keys(templates).length, 'preference matrix covers every template type');
+  assert(prefs.every(p => p.muted === false), 'defaults are not muted');
+  assert(prefs.find(p => p.type === 'organizer.application.approved').mandatory === true, 'approval type is mandatory');
+  assert(prefs.find(p => p.type === 'waitlist.joined').mandatory === false, 'waitlist join is opt-out-able');
+
+  // mute an opt-out-able type and verify notify returns null + no row.
+  await meService.setPreference(inserted.id, 'waitlist.joined', true);
+  reset();
+  const before = await notificationRepo.findAll({ userId: inserted.id });
+  const id = await notificationService.notify({
+    user: inserted,
+    type: 'waitlist.joined',
+    payload: { event: { id: 'e3', title: 'Muted Event', location: 'NYC', startsAt: new Date().toISOString() } },
+  });
+  assert(id === null,                       'notify returns null when type is muted');
+  assert(mockChannel.history.length === 0,  'no email dispatched when muted');
+  const after = await notificationRepo.findAll({ userId: inserted.id });
+  assert(after.length === before.length,    'no notification row inserted when muted');
+
+  // mandatory type cannot be muted via setPreference.
+  let mandatoryThrew = false;
+  try { await meService.setPreference(inserted.id, 'organizer.application.approved', true); }
+  catch { mandatoryThrew = true; }
+  assert(mandatoryThrew, 'muting a mandatory type → 422');
+
+  // un-mute and confirm the type sends again.
+  await meService.setPreference(inserted.id, 'waitlist.joined', false);
+  reset();
+  const id2 = await notificationService.notify({
+    user: inserted,
+    type: 'waitlist.joined',
+    payload: { event: { id: 'e4', title: 'Unmuted', location: 'NYC', startsAt: new Date().toISOString() } },
+  });
+  assert(id2 !== null,                        'after unmute, notify returns the row id');
+  assert(mockChannel.history.length === 1,    'email dispatched again after unmute');
 }
 
 await app.close();

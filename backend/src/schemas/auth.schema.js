@@ -5,7 +5,6 @@ export const registerBody = {
     name:     { type: 'string', minLength: 1, maxLength: 100 },
     email:    { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 6 },
-    role:     { type: 'string', enum: ['customer', 'organizer'] },
     phone:    { type: 'string', maxLength: 20 },
   },
   additionalProperties: false,

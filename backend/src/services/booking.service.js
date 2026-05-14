@@ -1,22 +1,27 @@
-import { bookingRepo }         from '../repos/booking.repo.js';
-import { ticketRepo }          from '../repos/ticket.repo.js';
-import { eventRepo }           from '../repos/event.repo.js';
-import { userRepo }            from '../repos/user.repo.js';
-import { waitlistEntryRepo }   from '../repos/waitlist_entry.repo.js';
-import { createBooking }       from '../strategies/factories/booking.factory.js';
-import { createTickets }       from '../strategies/factories/ticket.factory.js';
+import { bookingRepo }            from '../repos/booking.repo.js';
+import { ticketRepo }             from '../repos/ticket.repo.js';
+import { eventRepo }              from '../repos/event.repo.js';
+import { userRepo }               from '../repos/user.repo.js';
+import { waitlistEntryRepo }      from '../repos/waitlist_entry.repo.js';
+import { createBooking }          from '../strategies/factories/booking.factory.js';
+import { createTickets }          from '../strategies/factories/ticket.factory.js';
 import { canBook, canCancelBooking } from '../strategies/policies/booking.policy.js';
-import { notificationService } from './notification.service.js';
-import { waitlistService }     from './waitlist.service.js';
-import { AppError }            from '../utils/errors.js';
+import { resolvePaymentStrategy } from '../strategies/payment/index.js';
+import { notificationService }    from './notification.service.js';
+import { waitlistService }        from './waitlist.service.js';
+import { config }                 from '../configs/index.js';
+import { AppError }               from '../utils/errors.js';
 
 const slimEvent = (e) => e && ({
-  id:             e.id,
-  title:          e.title,
-  location:       e.location,
-  startsAt:       e.startsAt,
-  refundDeadline: e.refundDeadline,
-  status:         e.status,
+  id:               e.id,
+  title:            e.title,
+  location:         e.location,
+  startsAt:         e.startsAt,
+  refundDeadline:   e.refundDeadline,
+  meetingUrl:       e.meetingUrl,
+  status:           e.status,
+  ticketPriceMinor: e.ticketPriceMinor,
+  currency:         e.currency,
 });
 
 export const bookingService = {
@@ -35,7 +40,13 @@ export const bookingService = {
 
       await eventRepo.updateById(eventId, { remaining: event.remaining - quantity }, { transaction: t });
 
-      const bookingRow = createBooking({ userId: user.id, eventId, quantity, ticketPrice: event.ticketPrice });
+      const bookingRow = createBooking({
+        userId:           user.id,
+        eventId,
+        quantity,
+        ticketPriceMinor: event.ticketPriceMinor,
+        currency:         event.currency,
+      });
       const saved = await bookingRepo.insert(bookingRow, { transaction: t });
 
       const tickets = await createTickets({ bookingId: saved.id, eventId, quantity });
@@ -46,7 +57,16 @@ export const bookingService = {
       const existingWl = await waitlistEntryRepo.findByUserAndEvent(user.id, eventId, { transaction: t });
       if (existingWl) await waitlistEntryRepo.deleteById(existingWl.id, { transaction: t });
 
-      // TODO Phase 4: chargeBooking(saved) via payment strategy
+      // Conditional payment: only paid events trigger the gateway. v1 events are all free
+      // (eventService.create gates ticketPriceMinor at 0), so this branch never fires in v1.
+      // Shipping paid events later removes that gate; this branch is already in place.
+      if (event.ticketPriceMinor > 0) {
+        await resolvePaymentStrategy(config.paymentGateway).charge({
+          amountMinor: event.ticketPriceMinor * quantity,
+          currency:    event.currency,
+          metadata:    { bookingId: saved.id, userId: user.id },
+        });
+      }
 
       return { ...saved, tickets: savedTickets };
     });

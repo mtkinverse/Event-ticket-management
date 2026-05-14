@@ -1,10 +1,9 @@
 import { buildApp }    from '../src/app.js';
 import { initModels }  from '../src/models/index.js';
 import { sequelize }   from '../src/db/index.js';
-import { userRepo }    from '../src/repos/user.repo.js';
-import { createUser }  from '../src/strategies/factories/user.factory.js';
 import { assert, assertStatus, summary } from './helpers/assert.js';
 import { post, get }   from './helpers/request.js';
+import { seedOrganizer, seedAdmin } from './helpers/seed.js';
 
 process.env.NODE_ENV = 'test';
 
@@ -18,15 +17,10 @@ const patch = (app, url, body, token) =>
   app.inject({ method: 'PATCH', url, payload: body, headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) } });
 
 // ── setup users ───────────────────────────────────────────────────────────────
-const orgRes  = await post(app, '/auth/register', { name: 'Organizer', email: 'org@evt.com',  password: 'secret123', role: 'organizer' });
-const custRes = await post(app, '/auth/register', { name: 'Customer',  email: 'cust@evt.com', password: 'secret123', role: 'customer' });
-const orgToken  = JSON.parse(orgRes.body).token;
-const custToken = JSON.parse(custRes.body).token;
-
-const adminData = await createUser({ name: 'Admin', email: 'admin@evt.com', password: 'secret123', role: 'admin' });
-await userRepo.insert(adminData);
-const adminLoginRes = await post(app, '/auth/login', { email: 'admin@evt.com', password: 'secret123' });
-const adminToken = JSON.parse(adminLoginRes.body).token;
+const orgToken   = await seedOrganizer(app, { name: 'Organizer', email: 'org@evt.com' });
+const adminToken = await seedAdmin(app,     { name: 'Admin',     email: 'admin@evt.com' });
+const custRes    = await post(app, '/auth/register', { name: 'Customer', email: 'cust@evt.com', password: 'secret123' });
+const custToken  = JSON.parse(custRes.body).token;
 
 // ── event payload ─────────────────────────────────────────────────────────────
 const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
@@ -40,7 +34,8 @@ const eventPayload = {
   startsAt:    tomorrow,
   endsAt:      dayAfter,
   capacity:    100,
-  ticketPrice: 25,
+  ticketPriceMinor: 0,
+  currency:    'PKR',
 };
 
 let eventId;

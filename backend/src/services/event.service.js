@@ -20,18 +20,24 @@ const slimEvent = (e) => e && ({
 
 export const eventService = {
   async create(data, organizerId) {
+    // v1 free-events lock — single source of truth. Remove this block to ship paid events.
+    if (data.ticketPriceMinor && data.ticketPriceMinor !== 0) {
+      throw new AppError('Paid events are not yet supported.', 422);
+    }
+
     const event = createEvent({ ...data, organizerId });
     const saved = await eventRepo.insert(event);
 
     const payment = await resolvePaymentStrategy(config.paymentGateway).charge({
-      amount:   config.applicationFeeAmount,
-      metadata: { eventId: saved.id, organizerId },
+      amountMinor: config.applicationFee.amountMinor,
+      currency:    config.applicationFee.currency,
+      metadata:    { eventId: saved.id, organizerId },
     });
 
     const fee = createApplicationFee({
       organizerId,
       eventId:                saved.id,
-      amount:                 config.applicationFeeAmount,
+      amount:                 config.applicationFee.amountMinor,
       gatewayPaymentIntentId: payment.gatewayPaymentIntentId,
     });
     await applicationFeeRepo.insert(fee);
@@ -100,7 +106,7 @@ export const eventService = {
     if (fee) {
       await resolvePaymentStrategy(config.paymentGateway).refund({
         gatewayPaymentIntentId: fee.gatewayPaymentIntentId,
-        amount: fee.amount,
+        amountMinor:            fee.amount,
       });
       await applicationFeeRepo.updateById(fee.id, { status: 'refunded', resolvedAt: new Date() });
     }
@@ -120,8 +126,8 @@ export const eventService = {
     if (!event) throw new AppError('Event not found', 404);
     if (!canEditEvent(user, event)) throw new AppError('Forbidden', 403);
 
-    const ACTIVE_ALLOWED  = ['description', 'imageUrl', 'refundDeadline', 'registrationOpen'];
-    const PENDING_ALLOWED = ['title', 'description', 'category', 'location', 'startsAt', 'endsAt', 'capacity', 'ticketPrice', 'imageUrl', 'refundDeadline', 'registrationOpen'];
+    const ACTIVE_ALLOWED  = ['description', 'imageUrl', 'meetingUrl', 'refundDeadline', 'registrationOpen'];
+    const PENDING_ALLOWED = ['title', 'description', 'category', 'location', 'startsAt', 'endsAt', 'capacity', 'ticketPriceMinor', 'currency', 'imageUrl', 'meetingUrl', 'refundDeadline', 'registrationOpen'];
     const allowed = event.status === 'active' ? ACTIVE_ALLOWED : PENDING_ALLOWED;
 
     const patch = Object.fromEntries(Object.entries(data).filter(([k]) => allowed.includes(k)));

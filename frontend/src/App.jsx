@@ -17,6 +17,9 @@ import Profile from './pages/Profile.jsx';
 import OrganizerDashboard from './pages/OrganizerDashboard.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminApproval from './pages/AdminApproval.jsx';
+import AdminOrganizerApplications from './pages/AdminOrganizerApplications.jsx';
+import BecomeOrganizer from './pages/BecomeOrganizer.jsx';
+import NotificationSettings from './pages/NotificationSettings.jsx';
 
 import './styles/global.css';
 
@@ -47,7 +50,13 @@ export default function App() {
               <Route element={<AuthGuard />}>
                 <Route path="/dashboard" element={<MainDashboard />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/settings/notifications" element={<NotificationSettings />} />
                 <Route path="/events/:id/book" element={<TicketBooking />} />
+
+                {/* Customer only — application to become an organizer */}
+                <Route element={<RoleGuard allow={['customer']} />}>
+                  <Route path="/become-organizer" element={<BecomeOrganizer />} />
+                </Route>
 
                 {/* Organizer only */}
                 <Route element={<RoleGuard allow={['organizer']} />}>
@@ -59,6 +68,7 @@ export default function App() {
                 <Route element={<RoleGuard allow={['admin']} />}>
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin/approvals" element={<AdminApproval />} />
+                  <Route path="/admin/organizer-applications" element={<AdminOrganizerApplications />} />
                 </Route>
               </Route>
             </Routes>

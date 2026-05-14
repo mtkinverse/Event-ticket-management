@@ -6,7 +6,7 @@ import { Button } from '../components/common/Button.jsx';
 
 export default function Login() {
   const [tab, setTab] = useState('login');
-  const [form, setForm] = useState({ email: '', password: '', name: '', role: 'customer' });
+  const [form, setForm] = useState({ email: '', password: '', name: '' });
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const notify = useNotify();
@@ -20,7 +20,7 @@ export default function Login() {
     try {
       const user = tab === 'login'
         ? await login({ email: form.email, password: form.password })
-        : await register({ name: form.name, email: form.email, password: form.password, role: form.role });
+        : await register({ name: form.name, email: form.email, password: form.password });
       notify.success(`Welcome${user.name ? `, ${user.name.split(' ')[0]}` : ''}!`);
       navigate(user.role === 'admin' ? '/admin' : user.role === 'organizer' ? '/organizer' : '/dashboard');
     } catch (err) {
@@ -58,21 +58,14 @@ export default function Login() {
             <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={set('password')} required />
           </div>
           {tab === 'register' && (
-            <div className="form-group">
-              <label className="form-label">Account Type</label>
-              <select className="form-input form-select" value={form.role} onChange={set('role')}>
-                <option value="customer">Attendee</option>
-                <option value="organizer">Event Organizer</option>
-              </select>
-            </div>
+            <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)', marginBottom: 'var(--space-4)' }}>
+              Want to host events? Sign up as an attendee first, then apply to become an organizer from your dashboard.
+            </p>
           )}
           <Button variant="primary" size="lg" loading={loading} className="w-full mt-4">
             {tab === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
         </form>
-        <p className="text-muted text-center mt-4" style={{ fontSize: 'var(--font-size-xs)' }}>
-          Demo: alice@example.com / bob@events.com / admin@platform.com — password: <strong>password</strong>
-        </p>
       </div>
     </div>
   );

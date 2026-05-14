@@ -1,7 +1,6 @@
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+import { formatMoney } from '../../../utils/currency.js';
 
-const fmtPrice = (dollars) =>
-  dollars === 0 ? 'Free' : `$${Number(dollars).toFixed(2)}`;
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const fmtDate = (iso) => {
   const d = new Date(iso);
@@ -22,9 +21,12 @@ export const mapEvent = (raw) => ({
   remaining: raw.remaining,
   isSoldOut: raw.remaining === 0,
   isAlmostFull: raw.remaining > 0 && raw.remaining <= 10,
-  price: raw.ticketPrice,
-  priceFormatted: fmtPrice(raw.ticketPrice),
+  priceMinor:     raw.ticketPriceMinor ?? 0,
+  currency:       raw.currency ?? 'PKR',
+  priceFormatted: formatMoney(raw.ticketPriceMinor ?? 0, raw.currency ?? 'PKR'),
+  isFree:         (raw.ticketPriceMinor ?? 0) === 0,
   imageUrl: raw.imageUrl,
+  meetingUrl: raw.meetingUrl ?? null,
   status: raw.status,
   rejectionReason: raw.rejectionReason ?? null,
   refundDeadline: raw.refundDeadline,

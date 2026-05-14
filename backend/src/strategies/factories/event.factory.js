@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const createEvent = ({
   title, description, category, location,
-  startsAt, endsAt, capacity, ticketPrice,
-  imageUrl = null, refundDeadline = null, organizerId,
+  startsAt, endsAt, capacity, ticketPriceMinor = 0, currency = 'PKR',
+  imageUrl = null, meetingUrl = null, refundDeadline = null, organizerId,
 }) => ({
   id: uuidv4(),
   organizerId,
@@ -15,8 +15,10 @@ export const createEvent = ({
   endsAt:           new Date(endsAt),
   capacity,
   remaining:        capacity,
-  ticketPrice,
+  ticketPriceMinor,
+  currency,
   imageUrl,
+  meetingUrl,
   status:           'pending',
   refundDeadline:   refundDeadline ? new Date(refundDeadline) : null,
   rejectionReason:  null,

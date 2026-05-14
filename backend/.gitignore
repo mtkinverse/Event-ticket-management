@@ -1,1 +1,4 @@
 package-lock.json
+*.png
+*.jpg
+*.jpeg

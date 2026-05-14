@@ -6,6 +6,7 @@ import { eventRepo }  from '../src/repos/event.repo.js';
 import { createUser } from '../src/strategies/factories/user.factory.js';
 import { assert, assertStatus, summary } from './helpers/assert.js';
 import { post, get } from './helpers/request.js';
+import { seedOrganizer, seedAdmin } from './helpers/seed.js';
 
 process.env.NODE_ENV = 'test';
 
@@ -18,12 +19,9 @@ const del = (app, url, token) =>
   app.inject({ method: 'DELETE', url, headers: token ? { authorization: `Bearer ${token}` } : {} });
 
 // ── users ───────────────────────────────────────────────────────────────────
-const orgToken  = JSON.parse((await post(app, '/auth/register', { name: 'Organizer', email: 'org@cx.com',  password: 'secret123', role: 'organizer' })).body).token;
-const custToken = JSON.parse((await post(app, '/auth/register', { name: 'Customer',  email: 'cust@cx.com', password: 'secret123', role: 'customer' })).body).token;
-
-const adminData = await createUser({ name: 'Admin', email: 'admin@cx.com', password: 'secret123', role: 'admin' });
-await userRepo.insert(adminData);
-const adminToken = JSON.parse((await post(app, '/auth/login', { email: 'admin@cx.com', password: 'secret123' })).body).token;
+const orgToken   = await seedOrganizer(app, { name: 'Organizer', email: 'org@cx.com' });
+const adminToken = await seedAdmin(app,     { name: 'Admin',     email: 'admin@cx.com' });
+const custToken  = JSON.parse((await post(app, '/auth/register', { name: 'Customer', email: 'cust@cx.com', password: 'secret123' })).body).token;
 
 // ── two approved events: A with future refundDeadline, B with past one ─────
 const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
@@ -33,14 +31,14 @@ const pastDeadline   = new Date(Date.now() -     86_400_000).toISOString();
 
 const eventA = JSON.parse((await post(app, '/events', {
   title: 'Concert A', description: 'A', category: 'music', location: 'NYC',
-  startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPrice: 20,
+  startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPriceMinor: 0, currency: 'PKR',
 }, { authorization: `Bearer ${orgToken}` })).body).event;
 await post(app, `/admin/events/${eventA.id}/approve`, {}, { authorization: `Bearer ${adminToken}` });
 await eventRepo.updateById(eventA.id, { refundDeadline: futureDeadline });
 
 const eventB = JSON.parse((await post(app, '/events', {
   title: 'Concert B', description: 'B', category: 'theatre', location: 'LA',
-  startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPrice: 30,
+  startsAt: tomorrow, endsAt: dayAfter, capacity: 5, ticketPriceMinor: 0, currency: 'PKR',
 }, { authorization: `Bearer ${orgToken}` })).body).event;
 await post(app, `/admin/events/${eventB.id}/approve`, {}, { authorization: `Bearer ${adminToken}` });
 await eventRepo.updateById(eventB.id, { refundDeadline: pastDeadline });

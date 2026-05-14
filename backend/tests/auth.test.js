@@ -36,6 +36,23 @@ let token;
   assertStatus(res, 400, 'missing fields → 400');
 }
 
+// role param is silently stripped by the schema; user ends up as a customer.
+// (Fastify's Ajv config `removeAdditional: 'all'` drops unknown props instead of 400.)
+{
+  const res = await post(app, '/auth/register', { name: 'X', email: 'x2@x.com', password: 'secret123', role: 'organizer' });
+  assertStatus(res, 201, 'register with extra role prop → 201 (prop stripped, not rejected)');
+  const body = JSON.parse(res.body);
+  assert(body.user.role === 'customer', 'role=organizer attempt was ignored; user is customer');
+}
+
+// default role is customer when no role is sent
+{
+  const res = await post(app, '/auth/register', { name: 'Cust', email: 'cust@auth.com', password: 'secret123' });
+  assertStatus(res, 201, 'register without role → 201');
+  const body = JSON.parse(res.body);
+  assert(body.user.role === 'customer', 'public signup creates customers only');
+}
+
 // --- login ---
 {
   const res = await post(app, '/auth/login', { email: user.email, password: user.password });

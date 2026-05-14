@@ -1,11 +1,17 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useRole } from '../../hooks/useRole.js';
+import { HostEventButton } from '../common/HostEventButton.jsx';
 
 const NAV_LINKS = {
   customer:  [{ to: '/events', label: 'Browse Events' }, { to: '/dashboard', label: 'My Tickets' }],
   organizer: [{ to: '/events', label: 'Browse Events' }, { to: '/organizer', label: 'My Events' }],
-  admin:     [{ to: '/events', label: 'Events' }, { to: '/admin', label: 'Dashboard' }, { to: '/admin/approvals', label: 'Approvals' }],
+  admin:     [
+    { to: '/events',                       label: 'Events' },
+    { to: '/admin',                        label: 'Dashboard' },
+    { to: '/admin/approvals',              label: 'Approvals' },
+    { to: '/admin/organizer-applications', label: 'Organizers' },
+  ],
 };
 
 export function Navbar() {
@@ -30,7 +36,7 @@ export function Navbar() {
           {user ? (
             <>
               <NavLink to="/profile" className={({ isActive }) => `navbar__link${isActive ? ' navbar__link--active' : ''}`} style={{ fontSize: '0.8rem' }}>{user.initials}</NavLink>
-              {role === 'organizer' && <Link to="/events/new" className="btn btn--primary btn--sm">+ New Event</Link>}
+              {role !== 'admin' && <HostEventButton className="btn btn--primary btn--sm">+ Host Event</HostEventButton>}
               <button className="btn btn--ghost btn--sm" style={{ color: 'rgba(255,255,255,0.8)', borderColor: 'rgba(255,255,255,0.2)' }} onClick={handleLogout}>Logout</button>
             </>
           ) : (

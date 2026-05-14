@@ -6,6 +6,8 @@ import { defineBooking }        from './booking.model.js';
 import { defineTicket }         from './ticket.model.js';
 import { defineWaitlistEntry }  from './waitlist_entry.model.js';
 import { defineNotification }   from './notification.model.js';
+import { defineOrganizerApplication } from './organizer_application.model.js';
+import { defineNotificationPreference } from './notification_preference.model.js';
 
 const ASSOCIATIONS = [
   { base: 'User',           ref: 'Event',          assoc: 'hasMany',   fk: 'organizerId', as: 'events'        },
@@ -31,6 +33,12 @@ const ASSOCIATIONS = [
 
   { base: 'User',           ref: 'Notification',   assoc: 'hasMany',   fk: 'userId',      as: 'notifications'   },
   { base: 'Notification',   ref: 'User',           assoc: 'belongsTo', fk: 'userId',      as: 'user'            },
+
+  { base: 'User',                  ref: 'OrganizerApplication', assoc: 'hasMany',   fk: 'userId', as: 'organizerApplications' },
+  { base: 'OrganizerApplication',  ref: 'User',                 assoc: 'belongsTo', fk: 'userId', as: 'user' },
+
+  { base: 'User',                   ref: 'NotificationPreference', assoc: 'hasMany',   fk: 'userId', as: 'notificationPreferences' },
+  { base: 'NotificationPreference', ref: 'User',                   assoc: 'belongsTo', fk: 'userId', as: 'user' },
 ];
 
 function loadModels(seq) {
@@ -42,6 +50,8 @@ function loadModels(seq) {
     Ticket:         defineTicket(seq),
     WaitlistEntry:  defineWaitlistEntry(seq),
     Notification:   defineNotification(seq),
+    OrganizerApplication:   defineOrganizerApplication(seq),
+    NotificationPreference: defineNotificationPreference(seq),
   };
 
   ASSOCIATIONS.forEach(({ base, ref, assoc, fk, as }) =>

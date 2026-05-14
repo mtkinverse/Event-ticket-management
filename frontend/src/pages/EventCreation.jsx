@@ -3,10 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { eventsApi } from '../services/api/events.js';
 import { useNotify } from '../contexts/NotificationContext.jsx';
 import { Button } from '../components/common/Button.jsx';
+import { SUPPORTED_CURRENCIES } from '../utils/currency.js';
 
 const CATEGORIES = ['Technology', 'Music', 'Business', 'Design', 'Health', 'Arts', 'Sports', 'Food', 'Other'];
 
-const INIT = { title: '', description: '', category: '', location: '', startsAt: '', endsAt: '', capacity: '', ticketPrice: '', imageUrl: '', refundDeadline: '' };
+const INIT = {
+  title: '', description: '', category: '', location: '',
+  startsAt: '', endsAt: '', capacity: '',
+  ticketPriceMinor: 0, currency: 'PKR',
+  meetingUrl: '', imageUrl: '', refundDeadline: '',
+};
+
+const helperTag = (text) => (
+  <small style={{ display: 'block', marginTop: 'var(--space-1)', color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)' }}>
+    💡 {text}
+  </small>
+);
 
 export default function EventCreation() {
   const notify = useNotify();
@@ -21,13 +33,22 @@ export default function EventCreation() {
     setLoading(true);
     try {
       const data = {
-        ...form,
-        capacity: Number(form.capacity),
-        ticketPrice: Number(form.ticketPrice),
+        title:            form.title,
+        description:      form.description,
+        category:         form.category,
+        location:         form.location,
+        startsAt:         form.startsAt,
+        endsAt:           form.endsAt,
+        capacity:         Number(form.capacity),
+        ticketPriceMinor: 0,                       // v1 free-events lock
+        currency:         form.currency,
+        ...(form.meetingUrl ? { meetingUrl: form.meetingUrl } : {}),
+        ...(form.imageUrl   ? { imageUrl:   form.imageUrl   } : {}),
+        // refundDeadline stays optional in v1 (the field is disabled below)
       };
-      const event = await eventsApi.create(data);
-      notify.success('Event submitted for review! We\'ll notify you once approved.');
-      navigate(`/organizer`);
+      await eventsApi.create(data);
+      notify.success("Event submitted for review! We'll notify you once approved.");
+      navigate('/organizer');
     } catch (err) {
       notify.error(err.message);
     } finally {
@@ -80,23 +101,36 @@ export default function EventCreation() {
                 <input className="form-input" type="number" min="1" placeholder="100" value={form.capacity} onChange={set('capacity')} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Ticket Price ($) *</label>
-                <input className="form-input" type="number" min="0" step="0.01" placeholder="49.00" value={form.ticketPrice} onChange={set('ticketPrice')} required />
+                <label className="form-label">Currency</label>
+                <select className="form-input form-select" value={form.currency} onChange={set('currency')}>
+                  {SUPPORTED_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Ticket Price</label>
+                <input className="form-input" type="number" value={0} disabled />
+                {helperTag('Paid events are coming soon. All v1 events are free.')}
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Online Meeting Link</label>
+              <input className="form-input" type="url" placeholder="https://meet.google.com/… or https://zoom.us/…" value={form.meetingUrl} onChange={set('meetingUrl')} />
+              {helperTag('Optional — paste a Zoom / Google Meet / Teams link. Attendees see it after booking.')}
             </div>
             <div className="form-group">
               <label className="form-label">Cover Image URL</label>
               <input className="form-input" type="url" placeholder="https://…" value={form.imageUrl} onChange={set('imageUrl')} />
             </div>
             <div className="form-group">
-              <label className="form-label">Refund Deadline *</label>
-              <input className="form-input" type="datetime-local" value={form.refundDeadline} onChange={set('refundDeadline')} required />
+              <label className="form-label">Refund Deadline</label>
+              <input className="form-input" type="datetime-local" value={form.refundDeadline} onChange={set('refundDeadline')} disabled />
+              {helperTag('Activates with paid events. Free-event cancellations are always allowed.')}
             </div>
           </div>
 
           <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)', background: 'var(--bg-alt)' }}>
             <h4 style={{ marginBottom: 'var(--space-2)' }}>Application Fee</h4>
-            <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)' }}>A $25 application fee is required. This is fully refunded if your event is rejected; otherwise it supports platform operations.</p>
+            <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)' }}>Already paid when your organizer application was approved — no extra charge per event.</p>
           </div>
 
           <div className="flex gap-4">
