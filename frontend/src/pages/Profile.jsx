@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { Badge } from '../components/common/Badge.jsx';
 
@@ -24,10 +25,15 @@ export default function Profile() {
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{user.name}</h2>
-            <Badge variant={ROLE_VARIANT[user.role] ?? 'info'} style={{ marginTop: 4 }}>
-              {user.role}
-            </Badge>
+            <div style={{ marginTop: 4 }}>
+              <Badge label={user.role} variant={ROLE_VARIANT[user.role] ?? 'info'} />
+            </div>
           </div>
+        </div>
+
+        <div className="profile__field">
+          <span className="profile__label">Role</span>
+          <span className="profile__value" style={{ textTransform: 'capitalize' }}>{user.role}</span>
         </div>
 
         <div className="profile__field">
@@ -50,6 +56,10 @@ export default function Profile() {
             </span>
           </div>
         )}
+      </div>
+
+      <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <Link to="/settings/notifications" className="btn btn--outline btn--sm">🔔 Notification preferences</Link>
       </div>
 
       <style>{`

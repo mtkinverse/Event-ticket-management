@@ -6,6 +6,7 @@ import { useNotify } from '../contexts/NotificationContext.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { SpinnerPage } from '../components/common/Spinner.jsx';
 import { QrTicket } from '../components/common/QrTicket.jsx';
+import { formatMoney } from '../utils/currency.js';
 
 export default function TicketBooking() {
   const { id } = useParams();
@@ -19,7 +20,8 @@ export default function TicketBooking() {
   if (loading) return <SpinnerPage />;
   if (!event) return null;
 
-  const total = (event.price * qty).toFixed(2);
+  const totalMinor     = (event.priceMinor ?? 0) * qty;
+  const totalFormatted = formatMoney(totalMinor, event.currency);
 
   const handleBook = async (e) => {
     e.preventDefault();
@@ -98,7 +100,7 @@ export default function TicketBooking() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) 0', borderTop: '1px solid var(--border)', marginBottom: 'var(--space-6)' }}>
                 <span className="text-muted">Total ({qty} × {event.priceFormatted})</span>
-                <span style={{ fontWeight: 700, fontSize: 'var(--font-size-xl)' }}>${total}</span>
+                <span style={{ fontWeight: 700, fontSize: 'var(--font-size-xl)' }}>{totalFormatted}</span>
               </div>
               <Button variant="primary" size="lg" loading={booking} className="w-full">Confirm & Pay</Button>
             </form>

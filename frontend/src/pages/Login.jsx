@@ -22,7 +22,7 @@ export default function Login() {
         ? await login({ email: form.email, password: form.password })
         : await register({ name: form.name, email: form.email, password: form.password });
       notify.success(`Welcome${user.name ? `, ${user.name.split(' ')[0]}` : ''}!`);
-      navigate(user.role === 'admin' ? '/admin' : user.role === 'organizer' ? '/organizer' : '/dashboard');
+      navigate(user.role === 'admin' ? '/admin' : user.role === 'organizer' ? '/organizer' : '/');
     } catch (err) {
       notify.error(err.message);
     } finally {

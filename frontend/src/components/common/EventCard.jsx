@@ -7,7 +7,7 @@ export function EventCard({ event }) {
   return (
     <div className="event-card">
       <div className="event-card__image">
-        <img src={imageUrl || 'https://picsum.photos/seed/default/640/360'} alt={title} loading="lazy" />
+        <img src={imageUrl || '/default-event-thumbnail.png'} alt={title} loading="lazy" />
         <div className="event-card__date-badge">
           <div className="day">{date.day}</div>
           <div className="month">{date.month}</div>

@@ -40,7 +40,18 @@ export const eventsApi = {
   },
 
   create: async (data) => {
-    const { event } = await req('/events', { method: 'POST', body: JSON.stringify(data) });
+    const { imageFile, ...rest } = data;
+    let body;
+    if (imageFile) {
+      body = new FormData();
+      Object.entries(rest).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') body.append(k, String(v));
+      });
+      body.append('image', imageFile);
+    } else {
+      body = JSON.stringify(rest);
+    }
+    const { event } = await req('/events', { method: 'POST', body });
     return mapEvent(event);
   },
 

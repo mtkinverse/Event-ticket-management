@@ -2,7 +2,7 @@ import { eventHandler }  from '../handlers/event.handler.js';
 import { authenticate }  from '../hooks/authenticate.js';
 import { authorize }     from '../hooks/authorize.js';
 import { canCreateEvent } from '../strategies/policies/event.policy.js';
-import { createEventBody, updateEventBody, eventQueryParams } from '../schemas/event.schema.js';
+import { updateEventBody, eventQueryParams } from '../schemas/event.schema.js';
 
 export async function eventRoutes(app) {
   // Public
@@ -11,8 +11,8 @@ export async function eventRoutes(app) {
   app.get('/:id', eventHandler.get);
   app.get('/:id/related', eventHandler.related);
 
-  // Organizer
-  app.post('/', { preHandler: [authenticate, authorize(canCreateEvent)], schema: { body: createEventBody } }, eventHandler.create);
+  // Organizer — accepts JSON or multipart/form-data (when an image file is attached).
+  app.post('/', { preHandler: [authenticate, authorize(canCreateEvent)] }, eventHandler.create);
   app.get('/mine', { preHandler: authenticate }, eventHandler.organizerEvents);
   app.patch('/:id', { preHandler: authenticate, schema: { body: updateEventBody } }, eventHandler.update);
 }

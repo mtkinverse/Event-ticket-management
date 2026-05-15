@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useFeaturedEvents } from '../hooks/useEvents.js';
 import { EventCard } from '../components/common/EventCard.jsx';
 import { SpinnerPage } from '../components/common/Spinner.jsx';
+import { HostEventButton } from '../components/common/HostEventButton.jsx';
 
 const CATEGORIES = ['Technology', 'Music', 'Business', 'Design', 'Health', 'Arts'];
 
@@ -19,7 +20,7 @@ export default function Home() {
             <p className="hero__subtitle">From tech summits to jazz nights — book your next unforgettable experience.</p>
             <div className="hero__actions">
               <Link to="/events" className="btn btn--primary btn--lg">Browse All Events</Link>
-              <Link to="/events/new" className="btn btn--outline btn--lg" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)' }}>Host an Event</Link>
+              <HostEventButton className="btn btn--outline btn--lg" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)' }}>Host an Event</HostEventButton>
             </div>
           </div>
         </div>
@@ -61,7 +62,7 @@ export default function Home() {
           <p style={{ color: 'rgba(255,255,255,0.75)', marginBottom: 'var(--space-8)', fontSize: 'var(--font-size-lg)' }}>
             Reach thousands of attendees. Submit your event and start selling tickets today.
           </p>
-          <Link to="/events/new" className="btn btn--primary btn--lg">Register Your Event</Link>
+          <HostEventButton className="btn btn--primary btn--lg">Register Your Event</HostEventButton>
         </div>
       </section>
     </div>

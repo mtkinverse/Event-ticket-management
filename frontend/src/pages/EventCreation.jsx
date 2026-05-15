@@ -11,7 +11,7 @@ const INIT = {
   title: '', description: '', category: '', location: '',
   startsAt: '', endsAt: '', capacity: '',
   ticketPriceMinor: 0, currency: 'PKR',
-  meetingUrl: '', imageUrl: '', refundDeadline: '',
+  meetingUrl: '', refundDeadline: '',
 };
 
 const helperTag = (text) => (
@@ -24,6 +24,7 @@ export default function EventCreation() {
   const notify = useNotify();
   const navigate = useNavigate();
   const [form, setForm] = useState(INIT);
+  const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const set = (k) => (e) => setForm(prev => ({ ...prev, [k]: e.target.value }));
@@ -43,7 +44,7 @@ export default function EventCreation() {
         ticketPriceMinor: 0,                       // v1 free-events lock
         currency:         form.currency,
         ...(form.meetingUrl ? { meetingUrl: form.meetingUrl } : {}),
-        ...(form.imageUrl   ? { imageUrl:   form.imageUrl   } : {}),
+        ...(imageFile       ? { imageFile }                  : {}),
         // refundDeadline stays optional in v1 (the field is disabled below)
       };
       await eventsApi.create(data);
@@ -118,8 +119,9 @@ export default function EventCreation() {
               {helperTag('Optional — paste a Zoom / Google Meet / Teams link. Attendees see it after booking.')}
             </div>
             <div className="form-group">
-              <label className="form-label">Cover Image URL</label>
-              <input className="form-input" type="url" placeholder="https://…" value={form.imageUrl} onChange={set('imageUrl')} />
+              <label className="form-label">Cover Image</label>
+              <input className="form-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setImageFile(e.target.files?.[0] ?? null)} />
+              {helperTag('Optional — PNG, JPEG, or WebP up to 4 MB. Shown on event cards and the details page.')}
             </div>
             <div className="form-group">
               <label className="form-label">Refund Deadline</label>

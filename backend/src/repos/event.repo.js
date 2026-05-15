@@ -31,7 +31,7 @@ export const eventRepo = {
   },
 
   findTop(limit = 6) {
-    return base.findAll({ status: 'active' }, { order: [['startsAt', 'ASC']], limit });
+    return base.findAll({ status: 'active' }, { order: [['startsAt', 'DESC']], limit });
   },
 
   findByOrganizer(organizerId, opts = {}) {

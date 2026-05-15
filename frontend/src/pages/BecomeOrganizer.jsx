@@ -7,12 +7,13 @@ import { useNotify } from '../contexts/NotificationContext.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { SpinnerPage } from '../components/common/Spinner.jsx';
-import { SUPPORTED_CURRENCIES, formatMoney } from '../utils/currency.js';
+import { SUPPORTED_CURRENCIES, formatMoney, toMinor } from '../utils/currency.js';
 
 // v1 platform-wide security fee (mirrors backend config.applicationFee).
 // Kept here as a UI hint only; the backend is authoritative.
 const FEE_HINT_AMOUNT   = 500000;
 const FEE_HINT_CURRENCY = 'PKR';
+const FEE_HINT_MAJOR    = 5000;
 
 export default function BecomeOrganizer() {
   const notify = useNotify();
@@ -20,18 +21,18 @@ export default function BecomeOrganizer() {
   const { user, isCustomer, isOrganizer } = useRole();
   const { application, loading, refresh } = useMyApplication();
   const [form, setForm] = useState({
-    businessName:       '',
-    motivation:         '',
-    paymentAmountMinor: '',
-    currency:           'PKR',
-    paymentReference:   '',
+    businessName:     '',
+    motivation:       '',
+    paymentAmount:    '',
+    currency:         'PKR',
+    paymentReference: '',
   });
   const [file, setFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [reapplying, setReapplying] = useState(false);
 
-  if (!user) return <Navigate to="/login" replace />;
   if (isOrganizer) return <Navigate to="/organizer" replace />;
-  if (!isCustomer) return <Navigate to="/" replace />;
+  if (user && !isCustomer) return <Navigate to="/" replace />;
   if (loading) return <SpinnerPage />;
 
   const set = (k) => (e) => setForm(prev => ({ ...prev, [k]: e.target.value }));
@@ -42,8 +43,11 @@ export default function BecomeOrganizer() {
     setSubmitting(true);
     try {
       await organizerApplicationsApi.submit({
-        ...form,
-        paymentAmountMinor: Number(form.paymentAmountMinor),
+        businessName:       form.businessName,
+        motivation:         form.motivation,
+        currency:           form.currency,
+        paymentReference:   form.paymentReference,
+        paymentAmountMinor: toMinor(form.paymentAmount, form.currency),
         snapshotFile:       file,
       });
       notify.success("Application submitted! We'll email you within 48 hours.");
@@ -55,8 +59,9 @@ export default function BecomeOrganizer() {
     }
   };
 
-  // If they've already applied, show status instead of the form.
-  if (application) {
+  // If they've already applied, show status instead of the form —
+  // except when they've chosen to re-apply after a rejection.
+  if (application && !(reapplying && application.status === 'rejected')) {
     return (
       <div className="page">
         <div className="dashboard-header">
@@ -81,9 +86,10 @@ export default function BecomeOrganizer() {
             {application.status === 'rejected' && (
               <>
                 <p><strong>Reason:</strong> {application.rejectionReason ?? 'No reason provided'}</p>
-                <p className="text-muted mt-4" style={{ fontSize: 'var(--font-size-sm)' }}>
-                  Reach out to support if you'd like to revise and re-apply.
+                <p className="text-muted mt-4" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--space-6)' }}>
+                  You can revise your details and submit a new application below.
                 </p>
+                <Button variant="primary" onClick={() => setReapplying(true)}>Re-apply</Button>
               </>
             )}
           </div>
@@ -96,11 +102,19 @@ export default function BecomeOrganizer() {
     <div className="page">
       <div className="dashboard-header">
         <div className="container">
-          <h1>Become an Organizer</h1>
+          <h1>Apply to become an event organizer</h1>
           <p className="text-muted">Host free events on EventHub. Pay the security fee, upload your transfer screenshot, and we'll review within 48 hours.</p>
         </div>
       </div>
       <div className="container section" style={{ maxWidth: 720 }}>
+        {reapplying && application?.status === 'rejected' && (
+          <div className="card" style={{ padding: 'var(--space-4) var(--space-6)', marginBottom: 'var(--space-6)', borderLeft: '4px solid var(--danger)', background: 'var(--bg-alt)' }}>
+            <strong>Your previous application was rejected.</strong>
+            <p className="text-muted" style={{ marginTop: 'var(--space-1)', marginBottom: 0, fontSize: 'var(--font-size-sm)' }}>
+              Reason: {application.rejectionReason ?? 'No reason provided'}. Update your details below and submit again.
+            </p>
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <div className="card" style={{ padding: 'var(--space-8)', marginBottom: 'var(--space-6)' }}>
             <h3 style={{ marginBottom: 'var(--space-6)' }}>Your business</h3>
@@ -121,9 +135,9 @@ export default function BecomeOrganizer() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-4)' }}>
               <div className="form-group">
-                <label className="form-label">Amount paid (minor units) *</label>
-                <input className="form-input" type="number" min="1" value={form.paymentAmountMinor} onChange={set('paymentAmountMinor')} required placeholder={String(FEE_HINT_AMOUNT)} />
-                <small className="text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>e.g. 500000 = ₨ 5,000</small>
+                <label className="form-label">Amount paid *</label>
+                <input className="form-input" type="number" min="1" step="0.01" value={form.paymentAmount} onChange={set('paymentAmount')} required placeholder={String(FEE_HINT_MAJOR)} />
+                <small className="text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>Enter the amount in {form.currency} (e.g. {FEE_HINT_MAJOR.toLocaleString('en-US')}).</small>
               </div>
               <div className="form-group">
                 <label className="form-label">Currency *</label>
@@ -144,8 +158,14 @@ export default function BecomeOrganizer() {
           </div>
 
           <div className="flex gap-4">
-            <Button variant="primary" size="lg" loading={submitting}>Submit application</Button>
-            <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
+            {user ? (
+              <>
+                <Button variant="primary" size="lg" loading={submitting}>Submit application</Button>
+                <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
+              </>
+            ) : (
+              <Link to="/login" className="btn btn--primary btn--lg">Sign in to apply</Link>
+            )}
           </div>
         </form>
       </div>

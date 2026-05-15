@@ -53,7 +53,7 @@ export default function EventDetails() {
     <div className="page">
       {/* Hero image */}
       <div style={{ height: 380, position: 'relative', background: 'var(--primary)', overflow: 'hidden', marginTop: 'var(--nav-height)' }}>
-        <img src={event.imageUrl} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
+        <img src={event.imageUrl || '/default-event-thumbnail.png'} alt={event.title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', background: 'linear-gradient(to top, rgba(15,27,61,0.9) 0%, transparent 60%)' }}>
           <div className="container" style={{ paddingBottom: 'var(--space-8)' }}>
             <Badge label={event.status} />
@@ -68,7 +68,15 @@ export default function EventDetails() {
           {/* Left: details */}
           <div>
             <h2 style={{ marginBottom: 'var(--space-4)' }}>About this event</h2>
-            <p style={{ lineHeight: 1.8, color: 'var(--text-muted)', marginBottom: 'var(--space-8)' }}>{event.description}</p>
+            <p style={{ lineHeight: 1.8, color: 'var(--text-muted)', marginBottom: 'var(--space-6)' }}>{event.description}</p>
+
+            {event.meetingUrl && (
+              <div className="card" style={{ padding: 'var(--space-4) var(--space-6)', marginBottom: 'var(--space-8)', background: 'var(--bg-alt)', borderLeft: '4px solid var(--accent)' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>📡 Online meeting link</div>
+                <a href={event.meetingUrl} target="_blank" rel="noopener noreferrer" style={{ wordBreak: 'break-all', fontWeight: 500 }}>{event.meetingUrl}</a>
+                {!isLoggedIn && <div className="text-muted" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>Visible to all — attendees see it in their confirmation email after booking.</div>}
+              </div>
+            )}
 
             {related.length > 0 && (
               <>

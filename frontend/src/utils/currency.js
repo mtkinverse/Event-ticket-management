@@ -9,3 +9,8 @@ export const formatMoney = (amountMinor, currency = 'USD') => {
   const major   = (amountMinor / divisor).toLocaleString('en-US', { minimumFractionDigits: 2 });
   return `${SYMBOLS[currency] ?? currency + ' '}${major}`;
 };
+
+export const toMinor = (amountMajor, currency = 'USD') => {
+  const divisor = MINOR_DIVISOR[currency] ?? 100;
+  return Math.round(Number(amountMajor) * divisor);
+};

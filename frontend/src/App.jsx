@@ -45,6 +45,7 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/events" element={<AllEvents />} />
               <Route path="/events/:id" element={<EventDetails />} />
+              <Route path="/become-organizer" element={<BecomeOrganizer />} />
 
               {/* Auth required */}
               <Route element={<AuthGuard />}>
@@ -52,11 +53,6 @@ export default function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings/notifications" element={<NotificationSettings />} />
                 <Route path="/events/:id/book" element={<TicketBooking />} />
-
-                {/* Customer only — application to become an organizer */}
-                <Route element={<RoleGuard allow={['customer']} />}>
-                  <Route path="/become-organizer" element={<BecomeOrganizer />} />
-                </Route>
 
                 {/* Organizer only */}
                 <Route element={<RoleGuard allow={['organizer']} />}>

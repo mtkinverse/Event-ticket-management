@@ -212,6 +212,35 @@ export const MANDATORY_TYPES = new Set([
   'booking.cancelled',
 ]);
 
+/**
+ * Which roles can plausibly receive each notification type.
+ * Drives the per-user preferences page: a customer should not see
+ * `event.approved` (an organizer-only signal), and an organizer
+ * has already moved past `organizer.application.*`.
+ *
+ * Admins do not currently receive any system-dispatched notifications.
+ */
+export const NOTIFICATION_TYPES_BY_ROLE = {
+  customer: [
+    'booking.confirmed',
+    'booking.cancelled',
+    'waitlist.joined',
+    'waitlist.promoted',
+    'organizer.application.submitted',
+    'organizer.application.approved',
+    'organizer.application.rejected',
+  ],
+  organizer: [
+    'booking.confirmed',
+    'booking.cancelled',
+    'waitlist.joined',
+    'waitlist.promoted',
+    'event.approved',
+    'event.rejected',
+  ],
+  admin: [],
+};
+
 export const getTemplate = (type) => {
   const t = templates[type];
   if (!t) throw new AppError(`Unknown notification type: ${type}`, 500);
