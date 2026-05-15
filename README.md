@@ -10,28 +10,29 @@ Full-stack event and ticket management platform.
 backend/     # Fastify API + Sequelize models
 frontend/    # React SPA
 resources/   # Original specs (PDFs, wireframe, WBS)
-CLAUDE.md    # Agent operating manual — read first
-MEMORY.md    # Frozen project context — single source of truth
+docs/        # SRS, change log
 ```
 
 ## Getting started
 
-Phase 0 (this commit) is scaffolding only. No dependencies installed, no database set up. Service-specific implementation begins in the next chat session (see `MEMORY.md` §13).
-
-When you are ready:
+Requires Node 20+ and PostgreSQL 14+.
 
 ```bash
-cd backend  && npm install && cp .env.example .env
-cd frontend && npm install && cp .env.example .env
+cd backend  && npm install && cp .env.example .env && npm run db:setup && npm start
+cd frontend && npm install && cp .env.example .env && npm run dev
 ```
 
-## Agent notes
+Backend serves on `:3000`, frontend on `:5173`.
 
-`CLAUDE.md` at the repo root is the operating manual for AI-assisted work. It enforces:
+## Conventions
 
-1. Always update `MEMORY.md` when facts change.
-2. Read the frozen resource analyses in `MEMORY.md` §2–§5 before opening `resources/`.
-3. Jump to `MEMORY.md` sections by line range (TOC at §0) to save tokens.
-4. Use the design-pattern map — no ad-hoc if/else ladders for roles, payments, notifications, or event state.
+- Backend follows a layered structure: `routes/` → `handlers/` → `services/` → `repos/` → `models/`. Only `repos/` touches Sequelize directly.
+- Cross-cutting concerns use the strategy pattern (`backend/src/strategies/`): payment gateways, notification channels, role policies, event-state transitions.
+- Frontend state is React Context + hooks (no Redux). Route protection lives in `frontend/src/guards/`.
+- Small functions, single responsibility. Comments only when the *why* is non-obvious.
 
-Do not run `/init`; it would overwrite the hand-authored `CLAUDE.md`.
+## Tests
+
+```bash
+cd backend && npm test
+```
